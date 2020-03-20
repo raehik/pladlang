@@ -1,0 +1,63 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 966df425ae90b7f832e3a6b843e6e0f4e8182f81012200e371661aea2838d0bf
+
+name:           latypinf
+version:        0.1.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/git-bisect#readme>
+author:         Ben Orchard / bo207 / @raehik
+maintainer:     Ben Orchard / bo207 / @raehik
+copyright:      2020 Ben Orchard (@raehik)
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    CHANGELOG.md
+
+library
+  exposed-modules:
+      LaTypInf.App
+      LaTypInf.Types
+  other-modules:
+      Paths_latypinf
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , mtl >=2.2
+    , text >=1.2
+  default-language: Haskell2010
+
+executable latypinf-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_latypinf
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , latypinf
+    , mtl >=2.2
+    , text >=1.2
+  default-language: Haskell2010
+
+test-suite latypinf-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_latypinf
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , latypinf
+    , mtl >=2.2
+    , text >=1.2
+  default-language: Haskell2010
