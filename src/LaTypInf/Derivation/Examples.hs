@@ -3,36 +3,97 @@
 module LaTypInf.Derivation.Examples where
 
 import LaTypInf.Derivation.AST
-import Data.Text (Text)
 import qualified Data.Text as T
 
--- Show -> Text.
-tshow :: Show a => a -> Text
-tshow = T.pack . show
-
--- Wrap a string in mathtt.
-tt :: Text -> Text
-tt t = "\\mathtt{" <> t <> "}"
+-- Convenience print function.
+p = putStrLn . T.unpack
 
 --------------------------------------------------------------------------------
 
--- Print.
-p = putStrLn . T.unpack
+test1 = Rule {ruleName=Just "var", rulePremises=Right [], ruleJudgement=Sequent {sequentContext=[Binding "x" (Tau Nothing)], sequentExpr=EVar "x", sequentType=Tau Nothing}}
 
-test1 = Rule {ruleName="var", rulePremises=[], ruleJudgement=Sequent {sequentContext=[Binding "x" (Tau Nothing)], sequentExpr=EVar "x", sequentType=Tau Nothing}}
---test2 = Rule {ruleName="let", rulePremises=[test1], ruleJudgement=Sequent {sequentContext=NullSet, sequentExpr=ELet (ENum 1) "x" (EVar "x"), sequentType=Tau Nothing}}
-
-trVar = Rule {
-    ruleName="var",
-    rulePremises=[],
+exBindPlus = Rule {
+    ruleName=Just "let",
+    rulePremises=Right [
+        Rule {
+            ruleName=Just "num",
+            rulePremises=Right [],
+            ruleJudgement=
+                Sequent {
+                    sequentContext=[],
+                    sequentExpr=ENum 1,
+                    sequentType=TNum
+                }
+        },
+        Rule {
+            ruleName=Just "plus",
+            rulePremises=Right [
+                Rule {
+                    ruleName=Just "var",
+                    rulePremises=Right [],
+                    ruleJudgement=
+                        Sequent {
+                            sequentContext=[Binding "x" TNum],
+                            sequentExpr=EVar "x",
+                            sequentType=TNum
+                        }
+                },
+                Rule {
+                    ruleName=Just "num",
+                    rulePremises=Right [],
+                    ruleJudgement=
+                        Sequent {
+                            sequentContext=[Binding "x" TNum],
+                            sequentExpr=ENum 2,
+                            sequentType=TNum
+                        }
+                }
+            ],
+            ruleJudgement=
+                Sequent {
+                    sequentContext=[Binding "x" TNum],
+                    sequentExpr=EFunc "plus" [EVar "x", ENum 2],
+                    sequentType=TNum
+                }
+        }
+    ],
     ruleJudgement=
         Sequent {
-            sequentContext=[
-                Gamma (Just 1),
-                Binding "x" (Tau Nothing),
-                Gamma (Just 2)
-            ],
-            sequentExpr=EVar "x",
-            sequentType=Tau Nothing
+            sequentContext=[],
+            sequentExpr=ELet (ENum 1) "x" (EFunc "plus" [EVar "x", ENum 2]),
+            sequentType=TNum
         }
+    }
+
+exQuickFail =
+    Rule {
+        ruleName=Just "plus",
+        rulePremises=Right [
+            Rule {
+                ruleName=Nothing,
+                rulePremises=Left (TypeErrorUndefinedVariableUsed "x"),
+                ruleJudgement=
+                    Sequent {
+                        sequentContext=[],
+                        sequentExpr=EVar "x",
+                        sequentType=TNum
+                    }
+            },
+            Rule {
+                ruleName=Just "num",
+                rulePremises=Right [],
+                ruleJudgement=
+                    Sequent {
+                        sequentContext=[],
+                        sequentExpr=ENum 2,
+                        sequentType=TNum
+                    }
+            }
+        ],
+        ruleJudgement=
+            Sequent {
+                sequentContext=[],
+                sequentExpr=EFunc "plus" [EVar "x", ENum 2],
+                sequentType=TNum
+            }
     }

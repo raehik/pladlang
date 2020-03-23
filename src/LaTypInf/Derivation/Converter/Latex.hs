@@ -16,15 +16,23 @@ tt t = "\\mathtt{" <> t <> "}"
 
 showRule :: Rule -> Text
 showRule r =
-    --"\\inferrule*[Left=\\textbf{EF}-ty-"
-    "\\inferrule*[Left="
-    <> ruleName r <> "]"
+    "\\inferrule*"
+    <> showRuleName (ruleName r)
     <> "{" <> showPremises (rulePremises r) <> "}"
     <> "{" <> showSequent (ruleJudgement r) <> "}"
 
-showPremises :: [Rule] -> Text
-showPremises [] = " "
-showPremises rs = T.intercalate " \\\\ " $ map showRule rs
+showRuleName :: Maybe Text -> Text
+showRuleName Nothing = ""
+showRuleName (Just name) = "[Left=" <> name <> "]"
+
+showPremises :: Either TypeError [Rule] -> Text
+showPremises (Left err) = showTypeError err
+showPremises (Right []) = " "
+showPremises (Right rs) = T.intercalate " \\\\ " $ map showRule rs
+
+showTypeError (TypeErrorUndefinedVariableUsed v) =
+    "\\color{rred} " <> v <> " \\ " <> tt "undecl."
+showTypeError (TypeErrorAny) = "type error"
 
 showSequent :: Sequent -> Text
 showSequent s =

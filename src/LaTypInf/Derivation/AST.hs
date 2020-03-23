@@ -2,9 +2,14 @@ module LaTypInf.Derivation.AST where
 
 import Data.Text (Text)
 
+data TypeError
+    = TypeErrorUndefinedVariableUsed Text
+    | TypeErrorAny
+    deriving (Show)
+
 data Rule = Rule {
-    ruleName :: Text,
-    rulePremises :: [Rule],
+    ruleName :: Maybe Text,
+    rulePremises :: Either TypeError [Rule],
     ruleJudgement :: Sequent
 } deriving (Show)
 
