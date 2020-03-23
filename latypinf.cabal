@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 966df425ae90b7f832e3a6b843e6e0f4e8182f81012200e371661aea2838d0bf
+-- hash: df6d7849d7cfd0d750a849fef3cf2fe4f16ab7c56da49ef4173b32f045b082f7
 
 name:           latypinf
 version:        0.1.0
@@ -22,6 +22,7 @@ extra-source-files:
 library
   exposed-modules:
       LaTypInf.App
+      LaTypInf.TypeInference
       LaTypInf.Types
   other-modules:
       Paths_latypinf
@@ -29,8 +30,10 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , containers >=0.6
     , mtl >=2.2
     , text >=1.2
+    , transformers >=0.5
   default-language: Haskell2010
 
 executable latypinf-exe
@@ -42,9 +45,11 @@ executable latypinf-exe
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , containers >=0.6
     , latypinf
     , mtl >=2.2
     , text >=1.2
+    , transformers >=0.5
   default-language: Haskell2010
 
 test-suite latypinf-test
@@ -57,7 +62,9 @@ test-suite latypinf-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , containers >=0.6
     , latypinf
     , mtl >=2.2
     , text >=1.2
+    , transformers >=0.5
   default-language: Haskell2010

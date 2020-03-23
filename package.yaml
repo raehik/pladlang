@@ -23,6 +23,9 @@ dependencies:
 - base >= 4.7 && < 5
 - text >= 1.2
 - mtl >= 2.2
+- transformers >= 0.5
+- containers >= 0.6
+
 library:
   source-dirs: src
 
