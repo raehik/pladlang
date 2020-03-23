@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: df6d7849d7cfd0d750a849fef3cf2fe4f16ab7c56da49ef4173b32f045b082f7
+-- hash: 6969ff4b5394475b5c2a05a7d1dd18ab98dede8239636b0cc88e5c9801bcebaa
 
 name:           latypinf
 version:        0.1.0
@@ -22,8 +22,10 @@ extra-source-files:
 library
   exposed-modules:
       LaTypInf.App
-      LaTypInf.TypeInference
-      LaTypInf.Types
+      LaTypInf.Derivation.AST
+      LaTypInf.Derivation.Converter.Latex
+      LaTypInf.Derivation.Examples
+      LaTypInf.Derivation.Rules
   other-modules:
       Paths_latypinf
   hs-source-dirs:
