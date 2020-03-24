@@ -41,6 +41,8 @@ showPremises rs = T.intercalate " \\\\ " $ map showRule rs
 
 showTypeError (TypeErrorUndefinedVariableUsed v) =
     "\\color{rred} " <> v <> " \\ " <> tt "undecl."
+showTypeError (TypeErrorArgWrongType t) =
+    "\\color{rred} " <> showType t
 showTypeError (TypeErrorAny) = "type error"
 
 showSequent :: Sequent -> Text
@@ -74,6 +76,7 @@ showType (Tau (Just subscriptNum)) =
 showExpr :: Expr -> Text
 showExpr (EVar v) = "\\var{" <> v <> "}"
 showExpr (ENum x) = showType TNum <> "[" <> tshow x <> "]"
+showExpr (EStr x) = showType TStr <> "[" <> x <> "]"
 showExpr (EFunc name []) = tt name
 showExpr (EFunc name es) =
     tt name <> "(" <> T.intercalate " ; " (map showExpr es) <> ")"

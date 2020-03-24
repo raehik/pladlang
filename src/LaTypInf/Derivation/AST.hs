@@ -4,6 +4,7 @@ import Data.Text (Text)
 
 data TypeError
     = TypeErrorUndefinedVariableUsed Text
+    | TypeErrorArgWrongType Type
     | TypeErrorAny
     deriving (Show)
 
@@ -37,6 +38,7 @@ data ContextPart
 data Expr
     = EVar Text
     | ENum Int
+    | EStr Text
     | EFunc Text [Expr]
     | ELet Expr Text Expr
     | Epsilon (Maybe Int)
