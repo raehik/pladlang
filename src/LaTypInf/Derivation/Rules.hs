@@ -4,7 +4,7 @@ module LaTypInf.Derivation.Rules where
 
 import LaTypInf.Derivation.AST
 
-trVar = ValidRule {
+trVar = ValidRule ValidRule' {
     validRuleName="var",
     validRulePremises=[],
     validRuleJudgement=

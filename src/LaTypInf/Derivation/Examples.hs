@@ -10,12 +10,12 @@ p = putStrLn . T.unpack
 
 --------------------------------------------------------------------------------
 
-test1 = ValidRule {validRuleName="var", validRulePremises=[], validRuleJudgement=Sequent {sequentContext=[Binding "x" (Tau Nothing)], sequentExpr=EVar "x", sequentType=Tau Nothing}}
+test1 = ValidRule ValidRule' {validRuleName="var", validRulePremises=[], validRuleJudgement=Sequent {sequentContext=[Binding "x" (Tau Nothing)], sequentExpr=EVar "x", sequentType=Tau Nothing}}
 
-exBindPlus = ValidRule {
+exBindPlus = ValidRule ValidRule' {
     validRuleName="let",
     validRulePremises=[
-        ValidRule {
+        ValidRule ValidRule' {
             validRuleName="num",
             validRulePremises=[],
             validRuleJudgement=
@@ -25,10 +25,10 @@ exBindPlus = ValidRule {
                     sequentType=TNum
                 }
         },
-        ValidRule {
+        ValidRule ValidRule' {
             validRuleName="plus",
             validRulePremises=[
-                ValidRule {
+                ValidRule ValidRule' {
                     validRuleName="var",
                     validRulePremises=[],
                     validRuleJudgement=
@@ -38,7 +38,7 @@ exBindPlus = ValidRule {
                             sequentType=TNum
                         }
                 },
-                ValidRule {
+                ValidRule ValidRule' {
                     validRuleName="num",
                     validRulePremises=[],
                     validRuleJudgement=
@@ -66,10 +66,10 @@ exBindPlus = ValidRule {
     }
 
 exQuickFail =
-    ValidRule {
+    ValidRule ValidRule' {
         validRuleName="plus",
         validRulePremises=[
-            InvalidRule {
+            InvalidRule InvalidRule' {
                 invalidRuleError=TypeErrorUndefinedVariableUsed "x",
                 invalidRuleJudgement=
                     Sequent {
@@ -78,7 +78,7 @@ exQuickFail =
                         sequentType=TNum
                     }
             },
-            ValidRule {
+            ValidRule ValidRule' {
                 validRuleName="num",
                 validRulePremises=[],
                 validRuleJudgement=

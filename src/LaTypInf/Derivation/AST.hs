@@ -7,15 +7,18 @@ data TypeError
     | TypeErrorAny
     deriving (Show)
 
-type Rule = Either InvalidRule ValidRule
+data Rule
+    = InvalidRule InvalidRule'
+    | ValidRule ValidRule'
+    deriving (Show)
 
-data ValidRule = ValidRule {
+data ValidRule' = ValidRule' {
     validRuleName :: Text,
     validRulePremises :: [Rule],
     validRuleJudgement :: Sequent
 } deriving (Show)
 
-data InvalidRule = InvalidRule {
+data InvalidRule' = InvalidRule' {
     invalidRuleError :: TypeError,
     invalidRuleJudgement :: Sequent
 } deriving (Show)

@@ -15,20 +15,28 @@ tt :: Text -> Text
 tt t = "\\mathtt{" <> t <> "}"
 
 showRule :: Rule -> Text
-showRule (Left invalR) =
+showRule (ValidRule r) =
+    let name = showRuleName (validRuleName r)
+        premises = showPremises (validRulePremises r)
+        judgement = showSequent (validRuleJudgement r)
+    in constructInferRule (Just name) premises judgement
+showRule (InvalidRule r) =
+    let premises = showTypeError (invalidRuleError r)
+        judgement = showSequent (invalidRuleJudgement r)
+    in constructInferRule Nothing premises judgement
+
+constructInferRule :: Maybe Text -> Text -> Text -> Text
+constructInferRule optName premises judgement =
     "\\inferrule*"
-    <> "{" <> showTypeError (invalidRuleError invalR) <> "}"
-    <> "{" <> showSequent (invalidRuleJudgement invalR) <> "}"
-showRule (Right valR) =
-    "\\inferrule*"
-    <> showRuleName (validRuleName valR)
-    <> "{" <> showPremises (validRulePremises valR) <> "}"
-    <> "{" <> showSequent (validRuleJudgement valR) <> "}"
+    <> case optName of { Nothing -> ""; Just name -> name }
+    <> "{" <> premises <> "}"
+    <> "{" <> judgement <> "}"
 
 showRuleName :: Text -> Text
 showRuleName name = "[Left=" <> name <> "]"
 
 showPremises :: [Rule] -> Text
+showPremises [] = " "
 showPremises rs = T.intercalate " \\\\ " $ map showRule rs
 
 showTypeError (TypeErrorUndefinedVariableUsed v) =
