@@ -10,38 +10,38 @@ p = putStrLn . T.unpack
 
 --------------------------------------------------------------------------------
 
-test1 = Rule {ruleName=Just "var", rulePremises=Right [], ruleJudgement=Sequent {sequentContext=[Binding "x" (Tau Nothing)], sequentExpr=EVar "x", sequentType=Tau Nothing}}
+test1 = ValidRule {validRuleName="var", validRulePremises=[], validRuleJudgement=Sequent {sequentContext=[Binding "x" (Tau Nothing)], sequentExpr=EVar "x", sequentType=Tau Nothing}}
 
-exBindPlus = Rule {
-    ruleName=Just "let",
-    rulePremises=Right [
-        Rule {
-            ruleName=Just "num",
-            rulePremises=Right [],
-            ruleJudgement=
+exBindPlus = ValidRule {
+    validRuleName="let",
+    validRulePremises=[
+        ValidRule {
+            validRuleName="num",
+            validRulePremises=[],
+            validRuleJudgement=
                 Sequent {
                     sequentContext=[],
                     sequentExpr=ENum 1,
                     sequentType=TNum
                 }
         },
-        Rule {
-            ruleName=Just "plus",
-            rulePremises=Right [
-                Rule {
-                    ruleName=Just "var",
-                    rulePremises=Right [],
-                    ruleJudgement=
+        ValidRule {
+            validRuleName="plus",
+            validRulePremises=[
+                ValidRule {
+                    validRuleName="var",
+                    validRulePremises=[],
+                    validRuleJudgement=
                         Sequent {
                             sequentContext=[Binding "x" TNum],
                             sequentExpr=EVar "x",
                             sequentType=TNum
                         }
                 },
-                Rule {
-                    ruleName=Just "num",
-                    rulePremises=Right [],
-                    ruleJudgement=
+                ValidRule {
+                    validRuleName="num",
+                    validRulePremises=[],
+                    validRuleJudgement=
                         Sequent {
                             sequentContext=[Binding "x" TNum],
                             sequentExpr=ENum 2,
@@ -49,7 +49,7 @@ exBindPlus = Rule {
                         }
                 }
             ],
-            ruleJudgement=
+            validRuleJudgement=
                 Sequent {
                     sequentContext=[Binding "x" TNum],
                     sequentExpr=EFunc "plus" [EVar "x", ENum 2],
@@ -57,7 +57,7 @@ exBindPlus = Rule {
                 }
         }
     ],
-    ruleJudgement=
+    validRuleJudgement=
         Sequent {
             sequentContext=[],
             sequentExpr=ELet (ENum 1) "x" (EFunc "plus" [EVar "x", ENum 2]),
@@ -66,23 +66,22 @@ exBindPlus = Rule {
     }
 
 exQuickFail =
-    Rule {
-        ruleName=Just "plus",
-        rulePremises=Right [
-            Rule {
-                ruleName=Nothing,
-                rulePremises=Left (TypeErrorUndefinedVariableUsed "x"),
-                ruleJudgement=
+    ValidRule {
+        validRuleName="plus",
+        validRulePremises=[
+            InvalidRule {
+                invalidRuleError=TypeErrorUndefinedVariableUsed "x",
+                invalidRuleJudgement=
                     Sequent {
                         sequentContext=[],
                         sequentExpr=EVar "x",
                         sequentType=TNum
                     }
             },
-            Rule {
-                ruleName=Just "num",
-                rulePremises=Right [],
-                ruleJudgement=
+            ValidRule {
+                validRuleName="num",
+                validRulePremises=[],
+                validRuleJudgement=
                     Sequent {
                         sequentContext=[],
                         sequentExpr=ENum 2,
@@ -90,7 +89,7 @@ exQuickFail =
                     }
             }
         ],
-        ruleJudgement=
+        validRuleJudgement=
             Sequent {
                 sequentContext=[],
                 sequentExpr=EFunc "plus" [EVar "x", ENum 2],

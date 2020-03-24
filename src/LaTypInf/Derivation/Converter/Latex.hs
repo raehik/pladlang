@@ -15,20 +15,21 @@ tt :: Text -> Text
 tt t = "\\mathtt{" <> t <> "}"
 
 showRule :: Rule -> Text
-showRule r =
+showRule (Left invalR) =
     "\\inferrule*"
-    <> showRuleName (ruleName r)
-    <> "{" <> showPremises (rulePremises r) <> "}"
-    <> "{" <> showSequent (ruleJudgement r) <> "}"
+    <> "{" <> showTypeError (invalidRuleError invalR) <> "}"
+    <> "{" <> showSequent (invalidRuleJudgement invalR) <> "}"
+showRule (Right valR) =
+    "\\inferrule*"
+    <> showRuleName (validRuleName valR)
+    <> "{" <> showPremises (validRulePremises valR) <> "}"
+    <> "{" <> showSequent (validRuleJudgement valR) <> "}"
 
-showRuleName :: Maybe Text -> Text
-showRuleName Nothing = ""
-showRuleName (Just name) = "[Left=" <> name <> "]"
+showRuleName :: Text -> Text
+showRuleName name = "[Left=" <> name <> "]"
 
-showPremises :: Either TypeError [Rule] -> Text
-showPremises (Left err) = showTypeError err
-showPremises (Right []) = " "
-showPremises (Right rs) = T.intercalate " \\\\ " $ map showRule rs
+showPremises :: [Rule] -> Text
+showPremises rs = T.intercalate " \\\\ " $ map showRule rs
 
 showTypeError (TypeErrorUndefinedVariableUsed v) =
     "\\color{rred} " <> v <> " \\ " <> tt "undecl."

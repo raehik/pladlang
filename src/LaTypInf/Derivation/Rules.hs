@@ -4,10 +4,10 @@ module LaTypInf.Derivation.Rules where
 
 import LaTypInf.Derivation.AST
 
-trVar = Rule {
-    ruleName=Just "var",
-    rulePremises=Right [],
-    ruleJudgement=
+trVar = ValidRule {
+    validRuleName="var",
+    validRulePremises=[],
+    validRuleJudgement=
         Sequent {
             sequentContext=[
                 Gamma (Just 1),

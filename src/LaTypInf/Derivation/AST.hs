@@ -7,10 +7,17 @@ data TypeError
     | TypeErrorAny
     deriving (Show)
 
-data Rule = Rule {
-    ruleName :: Maybe Text,
-    rulePremises :: Either TypeError [Rule],
-    ruleJudgement :: Sequent
+type Rule = Either InvalidRule ValidRule
+
+data ValidRule = ValidRule {
+    validRuleName :: Text,
+    validRulePremises :: [Rule],
+    validRuleJudgement :: Sequent
+} deriving (Show)
+
+data InvalidRule = InvalidRule {
+    invalidRuleError :: TypeError,
+    invalidRuleJudgement :: Sequent
 } deriving (Show)
 
 data Sequent = Sequent {
