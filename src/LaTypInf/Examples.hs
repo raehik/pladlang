@@ -20,4 +20,5 @@ deriveAndPrint = printRule . getTypeDerivation
 
 exVPlusNums = deriveAndPrint $ EPlus (EPlus (ENum 1) (ENum 2)) (ENum 3)
 exVPlusLet = deriveAndPrint $ ELet (ENum 1) "x" (EPlus (ENum 1) (EVar "x"))
-exIPlusLetWrongVar = deriveAndPrint $ ELet (ENum 1) "x" (EPlus (ENum 1) (EVar "y"))
+exIPlusLetWrongVarLate = deriveAndPrint $ ELet (ENum 1) "x" (EPlus (ENum 1) (EVar "y"))
+exIPlusLetWrongVarEarly = deriveAndPrint $ ELet (ENum 1) "x" (EPlus (EVar "y") (ENum 1))

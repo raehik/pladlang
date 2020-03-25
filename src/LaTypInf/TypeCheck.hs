@@ -62,19 +62,33 @@ typeCheck = do
                             let rule = validRule "plus" [e1rule, e2rule] sequent
                             in return (Just TNum, rule)
                         Just typ ->
-                            let rule = invalidRule (DerivAST.TypeErrorArgWrongType (typeToDerivType typ)) sequent
-                            in return (Nothing, rule)
-                        Nothing -> throwErr ErrTypeCheckFailed
-                Just typ -> throwErr ErrTypeCheckFailed
-                Nothing -> throwErr ErrTypeCheckFailed
+                            let rule = validRule "plus" [e1rule, e2rule] sequent
+                            in return (Just TNum, rule)
+                        Nothing ->
+                            --let rule = invalidRule (DerivAST.TypeErrorArgWrongType (DerivAST.Tau Nothing)) sequent
+                            let rule = validRule "plus" [e1rule, e2rule] sequent
+                            in return (Just TNum, rule)
+                Just typ ->
+                    let rule = validRule "plus" [e1rule] sequent
+                    in return (Just TNum, rule)
+                Nothing ->
+                    --let rule = invalidRule (DerivAST.TypeErrorArgWrongType (DerivAST.Tau Nothing)) sequent
+                    let rule = validRule "plus" [e1rule] sequent
+                    in return (Nothing, rule)
         ELet e1 v e2 -> do
             (e1typ, e1rule) <- local (changeExpr e1) typeCheck
             case e1typ of
-                Nothing -> throwErr ErrTypeCheckFailed
+                Nothing ->
+                    let sequent = formSequent (envBindings env) (exprToDerivExpr expr) (DerivAST.Tau Nothing)
+                        rule = invalidRule (DerivAST.TypeErrorArgWrongType (DerivAST.Tau Nothing)) sequent
+                    in return (Nothing, rule)
                 Just e1typ' -> do
                     (e2typ, e2rule) <- local (changeExpr e2 . addTypeBinding v e1typ') typeCheck
                     case e2typ of
-                        Nothing -> throwErr ErrTypeCheckFailed
+                        Nothing ->
+                            let sequent = formSequent (envBindings env) (exprToDerivExpr expr) (DerivAST.Tau Nothing)
+                                rule = validRule "let" [e1rule, e2rule] sequent
+                            in return (Nothing, rule)
                         Just e2typ' ->
                             let sequent = formSequent (envBindings env) (exprToDerivExpr expr) (typeToDerivType e2typ')
                                 rule = validRule "let" [e1rule, e2rule] sequent
