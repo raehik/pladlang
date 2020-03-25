@@ -29,12 +29,15 @@ data Type
     | TStr
     | TBool
     | TArrow Type Type
-    deriving (Show)
+    deriving (Show, Eq)
 
 data Expr
     = EVar VVar
     | ENum VNum
     | EStr VStr
     | EPlus Expr Expr
+    | ETimes Expr Expr
     | ELet Expr VVar Expr
+    | ELam Type VVar Expr
+    | EAp Expr Expr
     deriving (Show)

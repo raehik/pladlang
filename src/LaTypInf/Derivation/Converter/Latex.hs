@@ -24,6 +24,7 @@ showRule (InvalidRule r) =
     let premises = showTypeError (invalidRuleError r)
         judgement = showSequent (invalidRuleJudgement r)
     in constructInferRule Nothing premises judgement
+showRule (SequentOnly s) = showSequent s
 
 constructInferRule :: Maybe Text -> Text -> Text -> Text
 constructInferRule optName premises judgement =
@@ -83,3 +84,6 @@ showExpr (EFunc name es) =
 showExpr (ELet e1 v e2) =
     tt "let" <> "(" <> showExpr e1 <> " ; "
     <> showExpr (EVar v) <> " . " <> showExpr e2 <> ")"
+showExpr (ELam t v e) =
+    tt "lam" <> "\\{" <> showType t <> "\\}"
+    <> "(" <> showExpr (EVar v) <> " . " <> showExpr e <> ")"

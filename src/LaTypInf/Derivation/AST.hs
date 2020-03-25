@@ -11,6 +11,7 @@ data TypeError
 data Rule
     = InvalidRule InvalidRule'
     | ValidRule ValidRule'
+    | SequentOnly Sequent
     deriving (Show)
 
 data ValidRule' = ValidRule' {
@@ -41,6 +42,7 @@ data Expr
     | EStr Text
     | EFunc Text [Expr]
     | ELet Expr Text Expr
+    | ELam Type Text Expr
     | Epsilon (Maybe Int)
     deriving (Show)
 
