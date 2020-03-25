@@ -22,6 +22,7 @@ exVPlusNums = deriveAndPrint $ EPlus (EPlus (ENum 1) (ENum 2)) (ENum 3)
 exVPlusLet = deriveAndPrint $ ELet (ENum 1) "x" (EPlus (ENum 1) (EVar "x"))
 exIPlusLetWrongVarLate = deriveAndPrint $ ELet (ENum 1) "x" (EPlus (ENum 1) (EVar "y"))
 exIPlusLetWrongVarEarly = deriveAndPrint $ ELet (ENum 1) "x" (EPlus (EVar "y") (ENum 1))
+
 exIClassEFEx4 = deriveAndPrint $
     ELet
         (ELam TNum "x"
@@ -34,6 +35,7 @@ exIClassEFEx4 = deriveAndPrint $
         (EAp
             (EVar "f")
             (ENum 0))
+
 exVClassEFEx2 = deriveAndPrint $
     ELet
         (ELam TNum "x"
@@ -47,3 +49,19 @@ exVClassEFEx2 = deriveAndPrint $
                 (EVar "f")
                 (ENum 4))
             (ENum 4))
+
+assessEx1 = deriveAndPrint $
+    ELet
+        (ENum 3)
+        "z"
+        (ETimes
+            (EVar "z")
+            (ENum 2))
+
+assessEx2 = deriveAndPrint $
+    EPlus
+        (ETimes
+            (ENum 12)
+            (ENum 0))
+        (ELen
+            (EStr "hi"))

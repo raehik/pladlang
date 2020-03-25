@@ -87,3 +87,6 @@ showExpr (ELet e1 v e2) =
 showExpr (ELam t v e) =
     tt "lam" <> "\\{" <> showType t <> "\\}"
     <> "(" <> showExpr (EVar v) <> " . " <> showExpr e <> ")"
+showExpr (E Nothing) = "e"
+showExpr (E (Just subscriptNum)) =
+    showExpr (E Nothing) <> "_{" <> tshow subscriptNum <> "}"

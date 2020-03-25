@@ -37,6 +37,7 @@ data Expr
     | EStr VStr
     | EPlus Expr Expr
     | ETimes Expr Expr
+    | ELen Expr
     | ELet Expr VVar Expr
     | ELam Type VVar Expr
     | EAp Expr Expr

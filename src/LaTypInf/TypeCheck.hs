@@ -51,30 +51,14 @@ typeCheck = do
             let sequent = formSequent (envBindings env) (exprToDerivExpr expr) (typeToDerivType TStr)
                 rule = validRule "str" [] sequent
             in return (Just TStr, rule)
-        EPlus e1 e2 -> do
+        EPlus e1 e2 -> typeCheckNumNumNum "plus" e1 e2
+        ETimes e1 e2 -> typeCheckNumNumNum "times" e1 e2
+        ELen e -> do
+            (eTyp, eRule) <- local (changeExpr e) typeCheck
             let sequent = formSequent (envBindings env) (exprToDerivExpr expr) (typeToDerivType TNum)
-            (e1typ, e1rule) <- local (changeExpr e1) typeCheck
-            case e1typ of
-                Just TNum -> do
-                    (e2typ, e2rule) <- local (changeExpr e2) typeCheck
-                    case e2typ of
-                        Just TNum ->
-                            let rule = validRule "plus" [e1rule, e2rule] sequent
-                            in return (Just TNum, rule)
-                        Just typ ->
-                            let rule = validRule "plus" [e1rule, e2rule] sequent
-                            in return (Just TNum, rule)
-                        Nothing ->
-                            --let rule = invalidRule (DerivAST.TypeErrorArgWrongType (DerivAST.Tau Nothing)) sequent
-                            let rule = validRule "plus" [e1rule, e2rule] sequent
-                            in return (Just TNum, rule)
-                Just typ ->
-                    let rule = validRule "plus" [e1rule] sequent
-                    in return (Just TNum, rule)
-                Nothing ->
-                    --let rule = invalidRule (DerivAST.TypeErrorArgWrongType (DerivAST.Tau Nothing)) sequent
-                    let rule = validRule "plus" [e1rule] sequent
-                    in return (Nothing, rule)
+                rule = validRule "len" [eRule] sequent
+                typ = case eTyp of { Just TStr -> Just TNum; t -> Nothing }
+            return (typ, rule)
         ELet e1 v e2 -> do
             (e1Typ, e1Rule) <- local (changeExpr e1) typeCheck
             case e1Typ of
@@ -109,7 +93,7 @@ typeCheck = do
                 Just eTyp' ->
                     let sequent = untypedSequent $ derivTypePart (typeToDerivType eTyp')
                         rule = validRule "lam" [eRule] sequent
-                    in return (Just eTyp', rule)
+                    in return (Just (TArrow t eTyp'), rule)
         EAp e1 e2 -> do
             let untypedSequent = formSequent (envBindings env) (exprToDerivExpr expr)
             (e1Typ, e1Rule) <- local (changeExpr e1) typeCheck
@@ -136,12 +120,11 @@ typeCheck = do
                         e2Rule = DerivAST.SequentOnly $ formSequent (envBindings env) (exprToDerivExpr e2) (DerivAST.Tau (Just 1))
                         rule = validRule "ap" [e1Rule, e2Rule] sequent
                     in return (Nothing, rule)
-        ETimes e1 e2 -> typeCheckNumNumNum "times" e1 e2
-        _ -> throwErr ErrUnsupportedExpression
+        --_ -> throwErr ErrUnsupportedExpression
 
 typeCheckNumNumNum name e1 e2 = do
     env <- ask
-    let derivExpr = DerivAST.EFunc name [exprToDerivExpr e1, exprToDerivExpr e2]
+    let derivExpr = derivExprFunc name [e1, e2]
     let sequent = formSequent (envBindings env) derivExpr (typeToDerivType TNum)
     (e1typ, e1rule) <- local (changeExpr e1) typeCheck
     case e1typ of
@@ -153,11 +136,11 @@ typeCheckNumNumNum name e1 e2 = do
                     in return (Just TNum, rule)
                 Just typ ->
                     let rule = validRule name [e1rule, e2rule] sequent
-                    in return (Just TNum, rule)
+                    in return (Nothing, rule)
                 Nothing ->
                     --let rule = invalidRule (DerivAST.TypeErrorArgWrongType (DerivAST.Tau Nothing)) sequent
                     let rule = validRule name [e1rule, e2rule] sequent
-                    in return (Just TNum, rule)
+                    in return (Nothing, rule)
         Just typ ->
             let rule = validRule name [e1rule] sequent
             in return (Just TNum, rule)
@@ -166,6 +149,8 @@ typeCheckNumNumNum name e1 e2 = do
             let rule = validRule name [e1rule] sequent
             in return (Nothing, rule)
 
+derivExprFunc name es = DerivAST.EFunc name (map exprToDerivExpr es)
+
 throwErr err = lift $ throwE err
 
 exprToDerivExpr e =
@@ -173,16 +158,17 @@ exprToDerivExpr e =
         EVar v -> DerivAST.EVar v
         ENum x -> DerivAST.ENum x
         EStr x -> DerivAST.EStr x
-        EPlus e1 e2 ->
-            DerivAST.EFunc "plus" [exprToDerivExpr e1, exprToDerivExpr e2]
-        ETimes e1 e2 ->
-            DerivAST.EFunc "times" [exprToDerivExpr e1, exprToDerivExpr e2]
+        EPlus e1 e2 -> derivExprFunc "plus" [e1, e2]
+        ETimes e1 e2 -> derivExprFunc "times" [e1, e2]
+        ELen e ->
+            DerivAST.EFunc "len" [exprToDerivExpr e]
         ELet e1 v e2 ->
             DerivAST.ELet (exprToDerivExpr e1) v (exprToDerivExpr e2)
         ELam t v e ->
             DerivAST.ELam (typeToDerivType t) v (exprToDerivExpr e)
         EAp e1 e2 ->
             DerivAST.EFunc "ap" [exprToDerivExpr e1, exprToDerivExpr e2]
+        --_ -> DerivAST.E Nothing
 
 validRule name premises judgement =
     DerivAST.ValidRule DerivAST.ValidRule' {

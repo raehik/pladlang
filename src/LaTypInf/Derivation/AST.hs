@@ -43,7 +43,7 @@ data Expr
     | EFunc Text [Expr]
     | ELet Expr Text Expr
     | ELam Type Text Expr
-    | Epsilon (Maybe Int)
+    | E (Maybe Int)
     deriving (Show)
 
 data Type
