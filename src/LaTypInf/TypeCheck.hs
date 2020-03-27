@@ -53,11 +53,25 @@ typeCheck = do
             in return (Just TStr, rule)
         EPlus e1 e2 -> typeCheckNumNumNum "plus" e1 e2
         ETimes e1 e2 -> typeCheckNumNumNum "times" e1 e2
+        ECat e1 e2 -> do
+            let sequent = formSequent (envBindings env) (exprToDerivExpr expr) (typeToDerivType TStr)
+            (e1Typ, e1Rule) <- local (changeExpr e1) typeCheck
+            case e1Typ of
+                Just TStr -> do
+                    (e2Typ, e2Rule) <- local (changeExpr e2) typeCheck
+                    let rule = validRule "cat" [e1Rule, e2Rule] sequent
+                        typ = case e2Typ of { Just TStr -> Just TStr; _ -> Nothing }
+                    return (typ, rule)
+                _ ->
+                    let e2Sequent = formSequent (envBindings env) (exprToDerivExpr e2) (typeToDerivType TStr)
+                        e2Rule = DerivAST.SequentOnly $ e2Sequent
+                        rule = validRule "cat" [e1Rule, e2Rule] sequent
+                    in return (Nothing, rule)
         ELen e -> do
             (eTyp, eRule) <- local (changeExpr e) typeCheck
             let sequent = formSequent (envBindings env) (exprToDerivExpr expr) (typeToDerivType TNum)
                 rule = validRule "len" [eRule] sequent
-                typ = case eTyp of { Just TStr -> Just TNum; t -> Nothing }
+                typ = case eTyp of { Just TStr -> Just TNum; _ -> Nothing }
             return (typ, rule)
         ELet e1 v e2 -> do
             (e1Typ, e1Rule) <- local (changeExpr e1) typeCheck
@@ -160,6 +174,7 @@ exprToDerivExpr e =
         EStr x -> DerivAST.EStr x
         EPlus e1 e2 -> derivExprFunc "plus" [e1, e2]
         ETimes e1 e2 -> derivExprFunc "times" [e1, e2]
+        ECat e1 e2 -> derivExprFunc "cat" [e1, e2]
         ELen e ->
             DerivAST.EFunc "len" [exprToDerivExpr e]
         ELet e1 v e2 ->

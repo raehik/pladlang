@@ -4,3 +4,5 @@
   * perhaps `plus`-like errors need to be shown by `\\ \red{type mismatch}` or
     something, I don't think it actually shows up on the derivation! (due to how
     I handle failures)
+  * convert spaces in vars, strings in TeX to that special visible space
+    character

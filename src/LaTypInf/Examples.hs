@@ -65,3 +65,36 @@ assessEx2 = deriveAndPrint $
             (ENum 0))
         (ELen
             (EStr "hi"))
+
+assessEx3Simpler = deriveAndPrint $
+    ELet
+        (ENum 3)
+        "x"
+        (ETimes
+            (EVar "x")
+            (ELen
+                (ECat
+                    (EStr "hello")
+                    (EStr "world"))))
+
+assessAppendixAhh = deriveAndPrint $
+    ELet
+        (ENum 3)
+        "x"
+        (ELet
+            (ELam TNum "y"
+                (ETimes
+                    (EVar "x")
+                    (EVar "y")))
+            "tX"
+            (ELet
+                (EAp
+                    (EVar "tX")
+                    (ELen
+                        (ECat
+                            (EStr "hello")
+                            (EStr "world"))))
+                "y"
+                (EAp
+                    (EVar "tX")
+                    (EVar "y"))))
