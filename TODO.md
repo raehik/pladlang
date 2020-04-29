@@ -1,3 +1,8 @@
+  * have renderers take renderer-specific options (e.g. which empty set symbol
+    to use)
+
+---
+
   * consider storing environment in an ordered list - slower, but may want to
     retain order
     * (it's a list in the derivation AST for that reason)
