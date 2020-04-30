@@ -11,7 +11,7 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.ByteString as B
 
-render = RendererLatex.renderLatex RendererLatex.configDefault
+render = RendererLatex.renderLatex RendererLatex.defaultConfig
 expr = Examples.validSimplePlus
 
 {-
@@ -35,22 +35,32 @@ data Renderer
     = RLatex RendererLatex.Config
     deriving (Show)
 
+progDesc' :: String
+progDesc' = "Type derive expressions in a simple language."
+
+progVer :: String
+progVer = "0.1"
+
 main :: IO ()
 main = do
-    opts <- execParser optsParser
+    opts <- execParserWithDefaults parseOpts
     print opts
   where
-    optsParser :: ParserInfo Options
-    optsParser =
-        info
-            (helper <*> versionOption <*> programOptions)
-            (fullDesc <> progDesc "Type derive expressions in a simple language.")
-    versionOption :: Parser (a -> a)
-    versionOption = infoOption "0.0" (long "version" <> help "Show version")
-    programOptions :: Parser Options
-    programOptions = Options <$> hsubparser (latexRenderer <> metavar "RENDERER")
+    parseOpts :: Parser Options
+    parseOpts = Options <$> hsubparser (latexRenderer <> metavar "RENDERER" <> commandGroup "Available renderers:")
     latexRenderer :: Mod CommandFields Renderer
     latexRenderer =
         command
             "latex"
-            (info (RLatex <$> RendererLatex.options) (progDesc "Render derivation to LaTeX"))
+            (info (RLatex <$> RendererLatex.options) (progDesc "Render derivation to LaTeX."))
+
+execParserWithDefaults parser =
+    customExecParser (prefs $ showHelpOnError <> noBacktrack) $ decorateParser parser
+  where
+    decorateParser :: Parser a -> ParserInfo a
+    decorateParser parser =
+        info
+            (helper <*> versionOpt <*> parser)
+            (fullDesc <> progDesc progDesc')
+    versionOpt :: Parser (a -> a)
+    versionOpt = infoOption progVer (long "version" <> help "Show version")

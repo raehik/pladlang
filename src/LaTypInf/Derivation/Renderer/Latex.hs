@@ -20,7 +20,7 @@
 module LaTypInf.Derivation.Renderer.Latex (
     renderLatex,
     Config,
-    configDefault,
+    defaultConfig,
     options
 ) where
 
@@ -47,14 +47,17 @@ data Config = Config {
     configUseAmssymbRounderSetSymbol :: Bool
 } deriving (Show)
 
-configDefault = Config {
+defaultConfig = Config {
     configUseAmssymbRounderSetSymbol = True
 }
 
 options :: OA.Parser Config
 options =
     Config
-        <$> OA.flag True False (OA.long "use-thin-emptyset" <> OA.help "TODO")
+        <$> OA.flag
+                (configUseAmssymbRounderSetSymbol defaultConfig)
+                False
+                (OA.long "use-thin-emptyset" <> OA.help "TODO")
 
 --------------------------------------------------------------------------------
 type Renderer = Reader Config
