@@ -20,13 +20,15 @@
 module LaTypInf.Derivation.Renderer.Latex (
     renderLatex,
     Config,
-    configDefault
+    configDefault,
+    options
 ) where
 
 import LaTypInf.Derivation.AST
 import Data.Text (Text)
 import qualified Data.Text as T
 import Control.Monad.Trans.Reader
+import qualified Options.Applicative as OA
 
 --------------------------------------------------------------------------------
 -- | Render a rule to LaTeX.
@@ -48,6 +50,11 @@ data Config = Config {
 configDefault = Config {
     configUseAmssymbRounderSetSymbol = True
 }
+
+options :: OA.Parser Config
+options =
+    Config
+        <$> OA.flag True False (OA.long "use-thin-emptyset" <> OA.help "TODO")
 
 --------------------------------------------------------------------------------
 type Renderer = Reader Config
