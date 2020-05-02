@@ -1,9 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module LaTypInf.TypeCheck where
+module Pladlang.TypeCheck where
 
-import LaTypInf.Types
-import qualified LaTypInf.Derivation.AST as DerivAST
+import Pladlang.AST
+import qualified Pladlang.Derivation.AST as DerivAST
 import Control.Monad.Trans.Class
 import Data.Functor.Identity
 import Control.Monad.Trans.Reader
@@ -12,6 +12,18 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Map (Map)
 import qualified Data.Map as Map
+
+data Err
+    = ErrTypeCheckFailed
+    | ErrUnsupportedExpression
+    deriving (Show, Eq)
+
+type Parser = ReaderT Env (Except Err)
+
+data Env = Env {
+    envBindings :: Map Text Type,
+    envExpr :: Expr
+} deriving (Show, Eq)
 
 tshow :: Show a => a -> Text
 tshow = T.pack . show

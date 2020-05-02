@@ -1,8 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module LaTypInf.Derivation.Examples where
+module Pladlang.Derivation.Examples where
 
-import LaTypInf.Derivation.AST
+import Pladlang.Derivation.AST
 import qualified Data.Text as T
 
 -- Convenience print function.

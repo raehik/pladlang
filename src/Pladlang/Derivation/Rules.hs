@@ -1,8 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module LaTypInf.Derivation.Rules where
+module Pladlang.Derivation.Rules where
 
-import LaTypInf.Derivation.AST
+import Pladlang.Derivation.AST
 
 trVar = ValidRule ValidRule' {
     validRuleName="var",

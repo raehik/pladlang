@@ -17,14 +17,14 @@
 
 {-# LANGUAGE OverloadedStrings #-}
 
-module LaTypInf.Derivation.Renderer.Latex (
+module Pladlang.Derivation.Renderer.Latex (
     renderLatex,
     Config,
     defaultConfig,
     options
 ) where
 
-import LaTypInf.Derivation.AST
+import Pladlang.Derivation.AST
 import Data.Text (Text)
 import qualified Data.Text as T
 import Control.Monad.Trans.Reader
@@ -44,20 +44,19 @@ renderLatex cfg rule = RenderedDerivationText $ runReader (showRule rule) cfg
 data Config = Config {
     -- | Whether to use the @amssymb@ set symbol @\\varnothing@, often
     -- recommended over the default one @\\emptyset@.
-    configUseAmssymbRounderSetSymbol :: Bool
+    cfgUseAmssymbRounderSetSymbol :: Bool
 } deriving (Show)
 
 defaultConfig = Config {
-    configUseAmssymbRounderSetSymbol = True
+    cfgUseAmssymbRounderSetSymbol = True
 }
 
 options :: OA.Parser Config
-options =
-    Config
-        <$> OA.flag
-                (configUseAmssymbRounderSetSymbol defaultConfig)
-                False
-                (OA.long "use-thin-emptyset" <> OA.help "TODO")
+options = Config <$>
+    OA.flag
+        (cfgUseAmssymbRounderSetSymbol defaultConfig)
+        False
+        (OA.long "use-latex-emptyset" <> OA.help "Use standard LaTeX's weird empty set symbol")
 
 --------------------------------------------------------------------------------
 type Renderer = Reader Config
@@ -112,7 +111,7 @@ showAnnotatedExpr e t = do
 
 showContext :: [ContextPart] -> Renderer Text
 showContext [] = do
-    useAmssymbRounderSetSymbol <- asks configUseAmssymbRounderSetSymbol
+    useAmssymbRounderSetSymbol <- asks cfgUseAmssymbRounderSetSymbol
     return $ case useAmssymbRounderSetSymbol of
         True  -> "\\varnothing"
         False -> "\\emptyset"

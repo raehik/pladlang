@@ -9,7 +9,7 @@ the type derivation for an expression -- if you want to, you must write the AST
 directly.
 -}
 
-module LaTypInf.Derivation.AST where
+module Pladlang.Derivation.AST where
 
 import Data.Text (Text)
 import qualified Data.ByteString as B
@@ -56,19 +56,19 @@ data ContextPart
     = Binding Text Type
 
     -- | Context metavar. The optional integer appends a subscript number.
-    | Gamma (Maybe Int)
+    | Gamma (Maybe Integer)
 
     deriving (Show)
 
 data Expr
     = EVar Text
-    | ENum Int
+    | ENum Integer
     | EStr Text
     | EFunc Text [Expr]
     | ELet Expr Text Expr
     | ELam Type Text Expr
     -- | Expression metavar. The optional integer appends a subscript number.
-    | E (Maybe Int)
+    | E (Maybe Integer)
     deriving (Show)
 
 data Type
@@ -77,7 +77,7 @@ data Type
     | TBool
     | TArrow Type Type
     -- | Type metavar. The optional integer appends a subscript number.
-    | Tau (Maybe Int)
+    | Tau (Maybe Integer)
     deriving (Show)
 
 -- | Renderers must wrap their output in this type to indicate whether it's

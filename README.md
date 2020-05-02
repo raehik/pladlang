@@ -1,26 +1,28 @@
-# UKC CS BSc CO663 2020: LaTeX formal type derivation builder
+# Pladlang: Tools for a simple exemplar programming language
 [ctan-mathpartir]: https://ctan.org/pkg/mathpartir
 [ukc-co663]: https://www.kent.ac.uk/courses/modules/module/CO663
 
-LaTypInf takes an equation written in a simple language inspired by the
-lambda calculus, and builds a formal type derivation for it in LaTeX macros via
+This is a set of tools for Pladlang, a generalisation of some simple lambda
+calculus-like languages introduced in the 2020 UKC module [CO663 Programming
+Languages: Application and Design][ukc-co663] (-> PLAD). It started off as a
+formal type derivation builder to let me cheat on part of an assessment, and
+grew much later as I learned more Haskell.
+
+Main usage: Takes an equation written in a simple language inspired by the
+lambda calculus and build a formal type derivation for it in LaTeX macros via
 the [mathpartir][ctan-mathpartir] package.
 
-This was written to cheat on part of an assessment for the [CO663 Programming
-Languages: Applications and Design][ukc-co663] module in UKC's 2020 CS BSc
-course, and cleaned up post submission.
-
 ## Usage
-LaTypInf is built with [Stack](https://www.haskellstack.org), so with it
+Pladlang is built with [Stack](https://www.haskellstack.org), so with it
 installed:
 
     stack ghci
 
-Then run wild. Examples are stored in `LaTypInf.Examples` and prepended with
-`ex` or `assess`.
+Then run wild. Examples are stored in `Pladlang.Examples` and prepended with
+`ex` or `assess`. (TODO)
 
 To compile the LaTeX output, you'll need LaTeX with a bunch of packages
-including [mathpartir][ctan-mathpartir].
+including [mathpartir][ctan-mathpartir]. (TODO)
 
 ## License
 Provided under the MIT license. Please see [LICENSE](LICENSE) for the full

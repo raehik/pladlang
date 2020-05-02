@@ -1,10 +1,11 @@
 -- | Example expressions for testing purposes. Validly typed expressions are
 -- prefixed with @valid@, invalid ones with @invalid@.
+
 {-# LANGUAGE OverloadedStrings #-}
 
-module LaTypInf.Examples where
+module Pladlang.ExampleExprs where
 
-import LaTypInf.Types
+import Pladlang.AST
 
 --------------------------------------------------------------------------------
 validSimplePlus =               EPlus (EPlus (ENum 1) (ENum 2)) (ENum 3)

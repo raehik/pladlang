@@ -1,6 +1,6 @@
-name:                latypinf
-version:             0.1.1
-github:              raehik/ukc-co663-latypinf
+name:                pladlang
+version:             0.2.0
+github:              raehik/pladlang
 license:             MIT
 author:              Ben Orchard / bo207 / @raehik
 copyright:           "2020 Ben Orchard (@raehik) <thefirstmuffinman@gmail.com>"
@@ -8,7 +8,7 @@ copyright:           "2020 Ben Orchard (@raehik) <thefirstmuffinman@gmail.com>"
 extra-source-files:
 - README.md
 
-description:         Please see the README on GitHub at <https://github.com/raehik/ukc-co663-latypinf#readme>
+description:         Please see the README on GitHub at <https://github.com/raehik/pladlang#readme>
 
 dependencies:
 - base >= 4.7 && < 5
@@ -18,12 +18,13 @@ dependencies:
 - containers >= 0.6
 - optparse-applicative >= 0.15
 - bytestring >= 0.10
+- megaparsec >= 8.0
 
 library:
   source-dirs: src
 
 executables:
-  latypinf-exe:
+  pladlang-exe:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
@@ -31,4 +32,4 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - latypinf
+    - pladlang
