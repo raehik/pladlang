@@ -17,23 +17,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Pladlang.Parser.LangEF
---    ( parseExpr
---    )
-where
+    ( pExpr
+    , pType
+    ) where
 
 import Pladlang.AST
-import Text.Megaparsec
-import Text.Megaparsec.Char
+import Pladlang.Parser.Utils
 import qualified Text.Megaparsec.Char.Lexer as L
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Void
-
-type Parser = Parsec Void Text
-
--- | Parse Language EF syntax.
-parseExpr :: Parser Expr
-parseExpr = pExpr <* eof
 
 pExpr :: Parser Expr
 pExpr =
@@ -44,25 +36,26 @@ pExpr =
 pExprNoLookahead :: Parser Expr
 pExprNoLookahead =
     ENum <$> lexeme L.decimal
-    <|> EStr <$> lexeme (symbol "\"" *> pExprStrTextAnyPrintable)
-    <|> ETrue <$ symbol "true"
-    <|> EFalse <$ symbol "false"
-    <|> ELen <$> lexeme (symbol "|" *> pExpr <* symbol "|")
-    <|> lexeme pExprIf
-    <|> lexeme pExprLet
-    <|> lexeme pExprLam
-    <|> EAp <$> lexeme (brackets pExpr) <*> lexeme (brackets pExpr)
+    <|> EStr <$> (charLexeme '\\' *> pExprStrTextAnyPrintable)
+    <|> ETrue <$ strLexeme "true"
+    <|> EFalse <$ strLexeme "false"
+    -- <|> ELen <$> lexeme (charLexeme '|' *> pExpr <* charLexeme '|')
+    <|> ELen <$> betweenCharLexemes '|' '|' pExpr
+    <|> pExprIf
+    <|> pExprLet
+    <|> pExprLam
+    <|> EAp <$> brackets pExpr <*> brackets pExpr
 
 pExprBinOp :: Parser Expr
 pExprBinOp =
-    try (lexeme (pExprBinOp' EPlus "plus" "+"))
-    <|> try (lexeme (pExprBinOp' ETimes "times" "*"))
-    <|> try (lexeme (pExprBinOp' ECat "cat" "++"))
-    <|> try (lexeme (pExprBinOp' EEqual "equal" "="))
+    try (pExprBinOp' EPlus "plus" "+")
+    <|> try (pExprBinOp' ETimes "times" "*")
+    <|> try (pExprBinOp' ECat "cat" "++")
+    <|> try (pExprBinOp' EEqual "equal" "=")
 
 pExprBinOp' f name op = do
     e1 <- pExprNoLookahead
-    symbol op
+    strLexeme op
     e2 <- pExpr
     return $ f e1 e2
 
@@ -75,44 +68,44 @@ pExprStrTextAnyPrintable = do
         '\"' -> return ""
         _ -> do
             str <- pExprStrTextAnyPrintable
-            return $ T.cons c str
+            lexeme $ return $ T.cons c str
 
 -- holy shit LOL
 pExprVar :: Parser Text
-pExprVar = ((<>) . T.singleton) <$> letterChar <*> (T.pack <$> many alphaNumChar)
+pExprVar = ((<>) . T.singleton) <$> letterChar <*> (T.pack <$> lexeme (many alphaNumChar))
 
 pExprIf :: Parser Expr
 pExprIf = do
-    symbol "if"
+    strLexeme "if"
     e <- pExpr
-    symbol "then"
+    strLexeme "then"
     e1 <- pExpr
-    symbol "else"
+    strLexeme "else"
     e2 <- pExpr
     return $ EIf e e1 e2
 
 pExprLet :: Parser Expr
 pExprLet = do
-    symbol "let"
+    strLexeme "let"
     x <- pExprVar
-    symbol "be"
+    strLexeme "be"
     e1 <- pExpr
-    symbol "in"
+    strLexeme "in"
     e2 <- pExpr
     return $ ELet e1 x e2
 
 pExprLam :: Parser Expr
 pExprLam = do
-    symbol "\\"
-    symbol "("
+    charLexeme '\\'
+    charLexeme '('
     x <- pExprVar
-    symbol ":"
+    charLexeme ':'
     t <- pType
-    symbol ")"
-    symbol "."
-    symbol "("
+    charLexeme ')'
+    charLexeme '.'
+    charLexeme '('
     e <- pExpr
-    symbol ")"
+    charLexeme ')'
     return $ ELam t x e
 
 pType :: Parser Type
@@ -120,46 +113,13 @@ pType = try pArrowType <|> pPlainTypes
 
 pPlainTypes :: Parser Type
 pPlainTypes =
-    TNum <$ symbol "num"
-    <|> TStr <$ symbol "str"
-    <|> TBool <$ symbol "bool"
+    TNum <$ strLexeme "num"
+    <|> TStr <$ strLexeme "str"
+    <|> TBool <$ strLexeme "bool"
 
 pArrowType :: Parser Type
 pArrowType = do
     t1 <- pPlainTypes
-    symbol "->"
+    strLexeme "->"
     t2 <- pType
     return $ TArrow t1 t2
-
-------------------------------------------------------------
-sc :: Parser ()
-sc = L.space
-    space1
-    (L.skipLineComment "--")
-    empty
-
-lexeme :: Parser a -> Parser a
-lexeme = L.lexeme sc
-
-symbol :: Text -> Parser Text
-symbol = L.symbol sc
-
-lStr = lexeme . string
-
-betweenSymbols :: Text -> Text -> Parser a -> Parser a
-betweenSymbols start end = between (symbol start) (symbol end)
-
-quotes :: Parser a -> Parser a
-quotes = betweenSymbols "\"" "\""
-
-brackets :: Parser a -> Parser a
-brackets = betweenSymbols "(" ")"
-
-squareBrackets :: Parser a -> Parser a
-squareBrackets = betweenSymbols "[" "]"
-
-curlyBrackets :: Parser a -> Parser a
-curlyBrackets = betweenSymbols "{" "}"
-
-test = parseTest parseExpr
-testT = parseTest (pType <* eof)

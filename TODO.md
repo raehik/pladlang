@@ -1,8 +1,5 @@
 ## Parsing
-  * write a parser for named functions with an arbitrary no. of exprs
-    * can use for plus, times, cat, len, equal, if, ap
-    * defo won't work in type system, maybe can still do it neatly piecemeal?
-      * or maybe it *would* work if I do applicative magic?! maybe :O
+  * add option to be strict on identifier naming (no keywords)
 
 ## Unsorted
   * consider storing environment in an ordered list - slower, but may want to

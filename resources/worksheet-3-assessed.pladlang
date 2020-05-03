@@ -1,0 +1,7 @@
+-- vim: ft=haskell
+
+-- syntax ef-ast
+--    let(num[3] ; z . times(z ; num[2]))
+
+#syntax ef
+    let z be 3 in z ++ 3

@@ -3,10 +3,12 @@ import System.IO
 import Options.Applicative
 import qualified Pladlang.AST as AST
 import qualified Pladlang.Parser.LangEF as ParserEF
+import qualified Pladlang.Parser.SyntaxSelect as ParserSyntaxSelect
 import qualified Pladlang.TypeCheck as TypeCheck
 import qualified Pladlang.Derivation.Renderer.Latex as RendererLatex
 import qualified Pladlang.Derivation.AST as DerivAST
 import qualified Pladlang.ExampleExprs as Examples
+import qualified Pladlang.Parser.Utils as PU
 import qualified Text.Megaparsec as M
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -14,8 +16,8 @@ import qualified Data.Text.IO as T
 import qualified Data.ByteString as B
 import Control.Monad.Trans.Except
 import Control.Monad.IO.Class
-import Data.Either.Combinators
 import Data.Void
+import qualified Data.List.NonEmpty as NE
 
 render = RendererLatex.renderLatex RendererLatex.defaultConfig
 expr = Examples.validSimplePlus
@@ -69,12 +71,14 @@ data Result
     | ResDerivation DerivAST.RenderedDerivation
     deriving (Show, Eq)
 
+p = PU.sc *> (NE.head <$> ParserSyntaxSelect.pSyntaxSelectBlocks) <* M.eof
+
 main' :: ExceptT Err IO Result
 main' = do
     opts <- liftIO $ execParserWithDefaults parseOpts
     expr <- liftIO $ T.hGetContents stdin
     --ast <- withExceptT ErrParseError $ return $ M.parse ParserEF.parseExpr "stdin" expr
-    parseOut <- return $ M.parse ParserEF.parseExpr "stdin" expr
+    parseOut <- return $ M.parse p "stdin" expr
     case parseOut of
         Left err -> throwE $ ErrParseError err
         Right ast ->
