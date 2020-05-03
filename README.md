@@ -24,6 +24,13 @@ Then run wild. Examples are stored in `Pladlang.Examples` and prepended with
 To compile the LaTeX output, you'll need LaTeX with a bunch of packages
 including [mathpartir][ctan-mathpartir]. (TODO)
 
+## Acknowledgements
+Summaries of the languages implemented in Pladlang were originally provided as
+course material for the 2020 CO663 module at UKC.
+
+Language EF is adapted from: *Harper, Robert. Practical foundations for
+programming languages. Cambridge University Press, 2016.*
+
 ## License
 Provided under the MIT license. Please see [LICENSE](LICENSE) for the full
 license text.

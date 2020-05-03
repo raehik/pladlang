@@ -1,14 +1,21 @@
 
 import System.IO
 import Options.Applicative
+import qualified Pladlang.AST as AST
+import qualified Pladlang.Parser.LangEF as ParserEF
 import qualified Pladlang.TypeCheck as TypeCheck
 import qualified Pladlang.Derivation.Renderer.Latex as RendererLatex
 import qualified Pladlang.Derivation.AST as DerivAST
 import qualified Pladlang.ExampleExprs as Examples
+import qualified Text.Megaparsec as M
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.ByteString as B
+import Control.Monad.Trans.Except
+import Control.Monad.IO.Class
+import Data.Either.Combinators
+import Data.Void
 
 render = RendererLatex.renderLatex RendererLatex.defaultConfig
 expr = Examples.validSimplePlus
@@ -40,18 +47,51 @@ progDesc' = "Type derive expressions in a simple language."
 progVer :: String
 progVer = "0.1"
 
+data Err
+    = ErrParseError (M.ParseErrorBundle Text Void)
+    | ErrTypeDerivError TypeCheck.Err
+    deriving (Eq, Show)
+
 main :: IO ()
 main = do
-    opts <- execParserWithDefaults parseOpts
-    print opts
+    ret <- runExceptT main'
+    case ret of
+        Left err ->
+            case err of
+                ErrParseError bundle -> putStr . M.errorBundlePretty $ bundle
+        Right result ->
+            case result of
+                ResPladlangExpr expr -> print expr
+                ResDerivation deriv -> writeRenderedDerivation deriv
+
+data Result
+    = ResPladlangExpr AST.Expr
+    | ResDerivation DerivAST.RenderedDerivation
+    deriving (Show, Eq)
+
+main' :: ExceptT Err IO Result
+main' = do
+    opts <- liftIO $ execParserWithDefaults parseOpts
+    expr <- liftIO $ T.hGetContents stdin
+    --ast <- withExceptT ErrParseError $ return $ M.parse ParserEF.parseExpr "stdin" expr
+    parseOut <- return $ M.parse ParserEF.parseExpr "stdin" expr
+    case parseOut of
+        Left err -> throwE $ ErrParseError err
+        Right ast ->
+            case TypeCheck.getTypeDerivation ast of
+                Left err -> throwE $ ErrTypeDerivError err
+                Right (_, rule) ->
+                    case optRenderer opts of
+                        RLatex cfg ->
+                            let parsedExpr = RendererLatex.renderLatex cfg rule in
+                            return $ ResDerivation parsedExpr
 
 parseOpts :: Parser Options
 parseOpts = Options <$>
     hsubparser
-        (metavar "RENDERER"
+        (  metavar "RENDERER"
         <> commandGroup "Available renderers:"
-        <> latexRendererCmd
-        )
+        <> latexRendererCmd )
 
 latexRendererCmd :: Mod CommandFields Renderer
 latexRendererCmd =

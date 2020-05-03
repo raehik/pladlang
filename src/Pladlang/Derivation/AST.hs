@@ -85,4 +85,4 @@ data Type
 data RenderedDerivation
     = RenderedDerivationText Text
     | RenderedDerivationBinary B.ByteString
-    deriving (Show)
+    deriving (Show, Eq)

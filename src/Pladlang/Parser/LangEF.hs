@@ -1,7 +1,15 @@
 -- | A parser for a very simple lambda calculus-like language named Language EF.
 --
--- Written according to the concrete syntax rules provided to us with the
--- language definition, along with a few assumptions.
+-- Written according to the provided concrete syntax rules.
+--
+-- I'm not good at writing parsers and I've never used megaparsec, so the
+-- implementation is extremely messy.
+--
+-- The language reference didn't specify any rules for parsing, just syntax. No
+-- operator precedences, associativity. And I got utterly lost trying to learn
+-- about it, so... all operators are equal (cool, good), and all
+-- right-associative (LOL). There are no brackets, either, so you can't change
+-- that.
 --
 -- The language is adapted from: /Harper, Robert. Practical foundations for
 -- programming languages. Cambridge University Press, 2016./
@@ -9,116 +17,149 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Pladlang.Parser.LangEF
-    ( parse
-    )
+--    ( parseExpr
+--    )
 where
 
 import Pladlang.AST
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
-import Data.Void
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Void
 
 type Parser = Parsec Void Text
 
 -- | Parse Language EF syntax.
---
--- The only
-parse :: Parser Expr
-parse = pExpr <* eof
+parseExpr :: Parser Expr
+parseExpr = pExpr <* eof
 
 pExpr :: Parser Expr
-pExpr = pExprFunction <|> pExprPlainVal
+pExpr =
+    pExprBinOp
+    <|> pExprNoLookahead
+    <|> EVar <$> lexeme pExprVar
 
-pExprFunction :: Parser Expr
-pExprFunction =
-    pExprBinaryFunc EPlus "plus"
-    <|> pExprBinaryFunc ETimes "times"
-    <|> pExprBinaryFunc ECat "cat"
-    <|> pExprUnaryFunc ELen "len"
-    <|> pExprBinaryFunc EEqual "equal"
-    <|> pExprIf
-    <|> pExprLet
-    <|> pExprLam
-    <|> pExprBinaryFunc EAp "ap"
+pExprNoLookahead :: Parser Expr
+pExprNoLookahead =
+    ENum <$> lexeme L.decimal
+    <|> EStr <$> lexeme (symbol "\"" *> pExprStrTextAnyPrintable)
+    <|> ETrue <$ symbol "true"
+    <|> EFalse <$ symbol "false"
+    <|> ELen <$> lexeme (symbol "|" *> pExpr <* symbol "|")
+    <|> lexeme pExprIf
+    <|> lexeme pExprLet
+    <|> lexeme pExprLam
+    <|> EAp <$> lexeme (brackets pExpr) <*> lexeme (brackets pExpr)
 
-pExprPlainVal :: Parser Expr
-pExprPlainVal =
-    ENum <$> (string "num" >> squareBrackets L.decimal)
-    <|> EStr . T.pack <$> (string "str" >> squareBrackets (some alphaNumChar))
-    <|> ETrue <$ string "true"
-    <|> EFalse <$ string "false"
-    <|> EVar <$> pExprVar
+pExprBinOp :: Parser Expr
+pExprBinOp =
+    try (lexeme (pExprBinOp' EPlus "plus" "+"))
+    <|> try (lexeme (pExprBinOp' ETimes "times" "*"))
+    <|> try (lexeme (pExprBinOp' ECat "cat" "++"))
+    <|> try (lexeme (pExprBinOp' EEqual "equal" "="))
 
+pExprBinOp' f name op = do
+    e1 <- pExprNoLookahead
+    symbol op
+    e2 <- pExpr
+    return $ f e1 e2
+
+-- yeah lol
+-- consumes up to a quote (eats the quote too but not returned)
+pExprStrTextAnyPrintable :: Parser Text
+pExprStrTextAnyPrintable = do
+    c <- printChar
+    case c of
+        '\"' -> return ""
+        _ -> do
+            str <- pExprStrTextAnyPrintable
+            return $ T.cons c str
+
+-- holy shit LOL
 pExprVar :: Parser Text
-pExprVar = do
-    start <- letterChar
-    rest <- optional (some alphaNumChar)
-    return $ T.singleton start <> maybe mempty T.pack rest
+pExprVar = ((<>) . T.singleton) <$> letterChar <*> (T.pack <$> many alphaNumChar)
 
 pExprIf :: Parser Expr
 pExprIf = do
-    _ <- string "if"
-    _ <- char '('
+    symbol "if"
     e <- pExpr
-    _ <- char ';'
+    symbol "then"
     e1 <- pExpr
-    _ <- char ';'
+    symbol "else"
     e2 <- pExpr
-    _ <- char ')'
     return $ EIf e e1 e2
 
 pExprLet :: Parser Expr
 pExprLet = do
-    _ <- string "let"
-    _ <- char '('
-    e1 <- pExpr
-    _ <- char ';'
+    symbol "let"
     x <- pExprVar
-    _ <- char '.'
+    symbol "be"
+    e1 <- pExpr
+    symbol "in"
     e2 <- pExpr
-    _ <- char ')'
     return $ ELet e1 x e2
 
 pExprLam :: Parser Expr
 pExprLam = do
-    _ <- string "lam"
-    t <- curlyBrackets pType
-    _ <- char '('
+    symbol "\\"
+    symbol "("
     x <- pExprVar
-    _ <- char '.'
+    symbol ":"
+    t <- pType
+    symbol ")"
+    symbol "."
+    symbol "("
     e <- pExpr
-    _ <- char ')'
+    symbol ")"
     return $ ELam t x e
 
 pType :: Parser Type
-pType =
-    TNum <$ string "num"
-    <|> TStr <$ string "str"
-    <|> TBool <$ string "bool"
-    <|> TArrow <$> pType <*> pType
+pType = try pArrowType <|> pPlainTypes
+
+pPlainTypes :: Parser Type
+pPlainTypes =
+    TNum <$ symbol "num"
+    <|> TStr <$ symbol "str"
+    <|> TBool <$ symbol "bool"
+
+pArrowType :: Parser Type
+pArrowType = do
+    t1 <- pPlainTypes
+    symbol "->"
+    t2 <- pType
+    return $ TArrow t1 t2
 
 ------------------------------------------------------------
-parens :: Parser a -> Parser a
-parens = between (char '(') (char ')')
+sc :: Parser ()
+sc = L.space
+    space1
+    (L.skipLineComment "--")
+    empty
+
+lexeme :: Parser a -> Parser a
+lexeme = L.lexeme sc
+
+symbol :: Text -> Parser Text
+symbol = L.symbol sc
+
+lStr = lexeme . string
+
+betweenSymbols :: Text -> Text -> Parser a -> Parser a
+betweenSymbols start end = between (symbol start) (symbol end)
+
+quotes :: Parser a -> Parser a
+quotes = betweenSymbols "\"" "\""
+
+brackets :: Parser a -> Parser a
+brackets = betweenSymbols "(" ")"
 
 squareBrackets :: Parser a -> Parser a
-squareBrackets = between (char '[') (char ']')
+squareBrackets = betweenSymbols "[" "]"
 
 curlyBrackets :: Parser a -> Parser a
-curlyBrackets = between (char '{') (char '}')
+curlyBrackets = betweenSymbols "{" "}"
 
-pExprBinaryFunc :: (Expr -> Expr -> Expr) -> Text -> Parser Expr
-pExprBinaryFunc f name = do
-    _ <- string name
-    _ <- char '('
-    e1 <- pExpr
-    _ <- char ';'
-    e2 <- pExpr
-    _ <- char ')'
-    return $ f e1 e2
-
-pExprUnaryFunc :: (Expr -> Expr) -> Text -> Parser Expr
-pExprUnaryFunc f name = f <$> (string name >> parens pExpr)
+test = parseTest parseExpr
+testT = parseTest (pType <* eof)

@@ -19,6 +19,7 @@ dependencies:
 - optparse-applicative >= 0.15
 - bytestring >= 0.10
 - megaparsec >= 8.0
+- either >= 5.0
 
 library:
   source-dirs: src
