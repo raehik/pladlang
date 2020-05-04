@@ -26,38 +26,45 @@ import Pladlang.Parser.Utils
 import qualified Text.Megaparsec.Char.Lexer as L
 import Data.Text (Text)
 import qualified Data.Text as T
+import Control.Monad.Combinators.Expr
 
-pExpr :: Parser Expr
-pExpr =
-    pExprBinOp
-    <|> pExprNoLookahead
-    <|> EVar <$> lexeme pExprVar
+pExpr = makeExprParser term table <?> "expression"
 
-pExprNoLookahead :: Parser Expr
-pExprNoLookahead =
-    ENum <$> lexeme L.decimal
-    <|> EStr <$> (charLexeme '\\' *> pExprStrTextAnyPrintable)
+term =
+    brackets pExpr
+    <|> EStr <$> (charLexeme '"' *> pExprStrTextAnyPrintable)
+    <|> ENum <$> lexeme L.decimal
     <|> ETrue <$ strLexeme "true"
     <|> EFalse <$ strLexeme "false"
-    -- <|> ELen <$> lexeme (charLexeme '|' *> pExpr <* charLexeme '|')
     <|> ELen <$> betweenCharLexemes '|' '|' pExpr
     <|> pExprIf
     <|> pExprLet
     <|> pExprLam
-    <|> EAp <$> brackets pExpr <*> brackets pExpr
+    <|> pExprVar
+    <?> "term"
 
-pExprBinOp :: Parser Expr
-pExprBinOp =
-    try (pExprBinOp' EPlus "plus" "+")
-    <|> try (pExprBinOp' ETimes "times" "*")
-    <|> try (pExprBinOp' ECat "cat" "++")
-    <|> try (pExprBinOp' EEqual "equal" "=")
+table = [ [ binaryCh  '*'   ETimes ]
+        , [ binaryCh  '+'   EPlus ]
+--        , [ binaryStr "+"   EPlus ]
+        , [ binaryStr "++"  ECat ]
+        , [ binaryStr "=="  EEqual ] ]
 
-pExprBinOp' f name op = do
-    e1 <- pExprNoLookahead
-    strLexeme op
-    e2 <- pExpr
-    return $ f e1 e2
+opChar :: Parser Char
+opChar = oneOf chars where
+    chars :: [Char]
+    chars = "!#$%&*+./<=>?@\\^|-~"
+
+binaryCh   name f = InfixL  (f <$ opCh  name)
+binaryStr  name f = InfixL  (f <$ opStr name)
+opCh  n = lexeme . try $ char   n <* notFollowedBy opChar
+opStr n = lexeme . try $ string n <* notFollowedBy opChar
+
+pExprVar :: Parser Expr
+pExprVar = EVar <$> pVar
+
+-- holy shit LOL
+pVar :: Parser Text
+pVar = lexeme (((<>) . T.singleton) <$> letterChar <*> (T.pack <$> lexeme (many alphaNumChar)))
 
 -- yeah lol
 -- consumes up to a quote (eats the quote too but not returned)
@@ -65,14 +72,10 @@ pExprStrTextAnyPrintable :: Parser Text
 pExprStrTextAnyPrintable = do
     c <- printChar
     case c of
-        '\"' -> return ""
+        '"' -> return ""
         _ -> do
             str <- pExprStrTextAnyPrintable
             lexeme $ return $ T.cons c str
-
--- holy shit LOL
-pExprVar :: Parser Text
-pExprVar = ((<>) . T.singleton) <$> letterChar <*> (T.pack <$> lexeme (many alphaNumChar))
 
 pExprIf :: Parser Expr
 pExprIf = do
@@ -87,7 +90,7 @@ pExprIf = do
 pExprLet :: Parser Expr
 pExprLet = do
     strLexeme "let"
-    x <- pExprVar
+    x <- pVar
     strLexeme "be"
     e1 <- pExpr
     strLexeme "in"
@@ -98,7 +101,7 @@ pExprLam :: Parser Expr
 pExprLam = do
     charLexeme '\\'
     charLexeme '('
-    x <- pExprVar
+    x <- pVar
     charLexeme ':'
     t <- pType
     charLexeme ')'
@@ -109,17 +112,13 @@ pExprLam = do
     return $ ELam t x e
 
 pType :: Parser Type
-pType = try pArrowType <|> pPlainTypes
+pType =
+    makeExprParser typeTerm [[opTypeArrow]] <?> "type"
 
-pPlainTypes :: Parser Type
-pPlainTypes =
-    TNum <$ strLexeme "num"
+typeTerm =
+    brackets pType
+    <|> TNum <$ strLexeme "num"
     <|> TStr <$ strLexeme "str"
     <|> TBool <$ strLexeme "bool"
 
-pArrowType :: Parser Type
-pArrowType = do
-    t1 <- pPlainTypes
-    strLexeme "->"
-    t2 <- pType
-    return $ TArrow t1 t2
+opTypeArrow = InfixR (TArrow <$ opStr "->")

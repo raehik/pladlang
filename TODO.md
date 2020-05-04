@@ -1,5 +1,8 @@
 ## Parsing
   * add option to be strict on identifier naming (no keywords)
+  * fix tokenizing: require spaces between them? it's amusing that it works
+    without in the first place (incorrect lexeme-ing?)
+    * lexeme usage seems fine but I don't really get lots of this anyway sooo
 
 ## Unsorted
   * consider storing environment in an ordered list - slower, but may want to
