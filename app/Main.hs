@@ -17,33 +17,18 @@ import qualified Data.Text.IO as T
 import qualified Data.ByteString as B
 import Control.Monad.Trans.Except
 import Control.Monad.Trans.Reader
+import Control.Monad.Trans.Class
 import Control.Monad.IO.Class
+import Data.Either.Combinators
 import Data.Void
 import qualified Data.List.NonEmpty as NE
 
-type Execution = ReaderT Options IO
+type Program = ExceptT Err (ReaderT Options.Options IO)
 
-render = RendererLatex.renderLatex RendererLatex.defaultConfig
-expr = Examples.validSimplePlus
-
-{-
-main :: IO ()
-main =
-    case TypeCheck.getTypeDerivation expr of
-        Left err -> print err
-        Right (_, rule) -> writeRenderedDerivation $ render rule
--}
-
-writeRenderedDerivation (DerivAST.RenderedDerivationText rd) =
-    T.hPutStrLn stdout rd
-writeRenderedDerivation (DerivAST.RenderedDerivationBinary rd) =
-    B.hPut stdout rd
-
-progDesc' :: String
-progDesc' = "Type derive expressions in a simple language."
-
-progVer :: String
-progVer = "0.1"
+data Result
+    = ResPladlangExpr AST.Expr
+    | ResDerivation DerivAST.RenderedDerivation
+    deriving (Eq, Show)
 
 data Err
     = ErrParseError (M.ParseErrorBundle Text Void)
@@ -51,42 +36,53 @@ data Err
     deriving (Eq, Show)
 
 main :: IO ()
-main = do
-    ret <- runExceptT main'
-    case ret of
-        Left err ->
-            case err of
-                ErrParseError bundle -> putStr . M.errorBundlePretty $ bundle
-        Right result ->
-            case result of
-                ResPladlangExpr expr -> print expr
-                ResDerivation deriv -> writeRenderedDerivation deriv
+main = Options.parse >>= runReaderT (runExceptT program >>= either handleProgramError handleProgramResult)
 
-data Result
-    = ResPladlangExpr AST.Expr
-    | ResDerivation DerivAST.RenderedDerivation
-    deriving (Show, Eq)
+handleProgramError :: Err -> ReaderT Options.Options IO ()
+handleProgramError _ = liftIO $ putStrLn "error boyo"
+handleProgramResult :: Result -> ReaderT Options.Options IO ()
+handleProgramResult _ = liftIO $ putStrLn "success! of some sort"
+
+writeRenderedDerivation (DerivAST.RenderedDerivationText rd) =
+    T.hPutStrLn stdout rd
+writeRenderedDerivation (DerivAST.RenderedDerivationBinary rd) =
+    B.hPut stdout rd
 
 p = PU.sc *> (NE.head <$> ParserSyntaxSelect.pSyntaxSelectBlocks) <* M.eof
 
-main' :: ExceptT Err IO Result
-main' = do
-    opts <- liftIO $ Options.parse
+program :: Program Result
+program = do
     expr <- liftIO $ T.hGetContents stdin
     --ast <- withExceptT ErrParseError $ return $ M.parse ParserEF.parseExpr "stdin" expr
-    parseOut <- return $ M.parse p "stdin" expr
+    parseOut <- return $ M.parse p "<stdin>" expr
     case parseOut of
         Left err -> throwE $ ErrParseError err
         Right ast ->
             case TypeCheck.getTypeDerivation ast of
                 Left err -> throwE $ ErrTypeDerivError err
-                Right (_, rule) ->
-                    case optRenderer opts of
+                Right (_, rule) -> do
+                    renderer <- lift $ asks optRenderer
+                    case renderer of
                         RLatex cfg ->
                             let parsedExpr = RendererLatex.renderLatex cfg rule in
                             return $ ResDerivation parsedExpr
 
--- | Run a function in the context of parsed options.
---withOptions :: Execution a -> Execution a
---withOptions =
---    execParserWithDefaults >>= runReaderT mainNewTwo
+program2 :: Program Result
+program2 = do
+    liftIO (T.hGetContents stdin)
+    >>= parseAsSyntaxSelect
+    >>= typeDeriveExpr
+    >>= renderTypeDerivation
+
+parseAsSyntaxSelect :: Text -> Program AST.Expr
+--parseAsSyntaxSelect = return . mapLeft ErrParseError . M.parse p "<stdin>"
+parseAsSyntaxSelect = withExceptT ErrParseError . except . M.parse p "<stdin>"
+typeDeriveExpr :: AST.Expr -> Program (Maybe AST.Type, DerivAST.Rule)
+typeDeriveExpr = withExceptT ErrTypeDerivError . except . TypeCheck.getTypeDerivation
+renderTypeDerivation :: (Maybe AST.Type, DerivAST.Rule) -> Program Result
+renderTypeDerivation (_, deriv) = do
+    renderer <- lift $ asks optRenderer
+    case renderer of
+        RLatex cfg ->
+            let parsedExpr = RendererLatex.renderLatex cfg deriv in
+            return $ ResDerivation parsedExpr

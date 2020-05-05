@@ -20,6 +20,7 @@ dependencies:
 - bytestring >= 0.10
 - megaparsec >= 8.0
 - parser-combinators >= 1.2
+- either >= 5.0
 
 library:
   source-dirs: src
@@ -29,6 +30,7 @@ executables:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
+    - -Wall
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
