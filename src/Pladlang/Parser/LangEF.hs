@@ -43,19 +43,20 @@ term =
     <|> pExprVar
     <?> "term"
 
-table = [ [ binaryCh  '*'   ETimes ]
-        , [ binaryCh  '+'   EPlus ]
---        , [ binaryStr "+"   EPlus ]
-        , [ binaryStr "++"  ECat ]
-        , [ binaryStr "=="  EEqual ] ]
+table =
+    [ [ binaryCh  '*'  ETimes ]
+    , [ binaryCh  '+'  EPlus ]
+    , [ binaryStr "++" ECat ]
+    , [ binaryCh  '='  EEqual ] ]
 
 opChar :: Parser Char
 opChar = oneOf chars where
     chars :: [Char]
     chars = "!#$%&*+./<=>?@\\^|-~"
 
-binaryCh   name f = InfixL  (f <$ opCh  name)
-binaryStr  name f = InfixL  (f <$ opStr name)
+binaryCh  name f = InfixL (f <$ opCh  name)
+binaryStr name f = InfixL (f <$ opStr name)
+binaryEmpty    f = InfixL (try (pure f))
 opCh  n = lexeme . try $ char   n <* notFollowedBy opChar
 opStr n = lexeme . try $ string n <* notFollowedBy opChar
 
@@ -64,7 +65,7 @@ pExprVar = EVar <$> pVar
 
 -- holy shit LOL
 pVar :: Parser Text
-pVar = lexeme (((<>) . T.singleton) <$> letterChar <*> (T.pack <$> lexeme (many alphaNumChar)))
+pVar = ((<>) . T.singleton) <$> letterChar <*> (T.pack <$> lexeme (many alphaNumChar))
 
 -- yeah lol
 -- consumes up to a quote (eats the quote too but not returned)

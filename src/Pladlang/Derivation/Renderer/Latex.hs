@@ -45,7 +45,7 @@ data Config = Config {
     -- | Whether to use the @amssymb@ set symbol @\\varnothing@, often
     -- recommended over the default one @\\emptyset@.
     cfgUseAmssymbRounderSetSymbol :: Bool
-} deriving (Show)
+} deriving (Eq, Show)
 
 defaultConfig = Config {
     cfgUseAmssymbRounderSetSymbol = True

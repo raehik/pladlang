@@ -8,6 +8,7 @@ import qualified Pladlang.TypeCheck as TypeCheck
 import qualified Pladlang.Derivation.Renderer.Latex as RendererLatex
 import qualified Pladlang.Derivation.AST as DerivAST
 import qualified Pladlang.ExampleExprs as Examples
+import Options
 import qualified Pladlang.Parser.Utils as PU
 import qualified Text.Megaparsec as M
 import Data.Text (Text)
@@ -15,9 +16,12 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.ByteString as B
 import Control.Monad.Trans.Except
+import Control.Monad.Trans.Reader
 import Control.Monad.IO.Class
 import Data.Void
 import qualified Data.List.NonEmpty as NE
+
+type Execution = ReaderT Options IO
 
 render = RendererLatex.renderLatex RendererLatex.defaultConfig
 expr = Examples.validSimplePlus
@@ -34,14 +38,6 @@ writeRenderedDerivation (DerivAST.RenderedDerivationText rd) =
     T.hPutStrLn stdout rd
 writeRenderedDerivation (DerivAST.RenderedDerivationBinary rd) =
     B.hPut stdout rd
-
-data Options = Options {
-    optRenderer :: Renderer
-} deriving (Show)
-
-data Renderer
-    = RLatex RendererLatex.Config
-    deriving (Show)
 
 progDesc' :: String
 progDesc' = "Type derive expressions in a simple language."
@@ -75,7 +71,7 @@ p = PU.sc *> (NE.head <$> ParserSyntaxSelect.pSyntaxSelectBlocks) <* M.eof
 
 main' :: ExceptT Err IO Result
 main' = do
-    opts <- liftIO $ execParserWithDefaults parseOpts
+    opts <- liftIO $ Options.parse
     expr <- liftIO $ T.hGetContents stdin
     --ast <- withExceptT ErrParseError $ return $ M.parse ParserEF.parseExpr "stdin" expr
     parseOut <- return $ M.parse p "stdin" expr
@@ -90,28 +86,7 @@ main' = do
                             let parsedExpr = RendererLatex.renderLatex cfg rule in
                             return $ ResDerivation parsedExpr
 
-parseOpts :: Parser Options
-parseOpts = Options <$>
-    hsubparser
-        (  metavar "RENDERER"
-        <> commandGroup "Available renderers:"
-        <> latexRendererCmd )
-
-latexRendererCmd :: Mod CommandFields Renderer
-latexRendererCmd =
-    command
-        "latex"
-        (info (RLatex <$> RendererLatex.options) (progDesc "Render derivation to LaTeX."))
-
--- Run a parser with a few set preferences and --version, --help options.
-execParserWithDefaults :: Parser a -> IO a
-execParserWithDefaults parser =
-    customExecParser (prefs $ showHelpOnError <> noBacktrack) $ decorateParser parser
-  where
-    decorateParser :: Parser a -> ParserInfo a
-    decorateParser parser =
-        info
-            (helper <*> versionOpt <*> parser)
-            (fullDesc <> progDesc progDesc')
-    versionOpt :: Parser (a -> a)
-    versionOpt = infoOption progVer (long "version" <> help "Show version")
+-- | Run a function in the context of parsed options.
+--withOptions :: Execution a -> Execution a
+--withOptions =
+--    execParserWithDefaults >>= runReaderT mainNewTwo
