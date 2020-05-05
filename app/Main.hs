@@ -52,30 +52,12 @@ p = PU.sc *> (NE.head <$> ParserSyntaxSelect.pSyntaxSelectBlocks) <* M.eof
 
 program :: Program Result
 program = do
-    expr <- liftIO $ T.hGetContents stdin
-    --ast <- withExceptT ErrParseError $ return $ M.parse ParserEF.parseExpr "stdin" expr
-    parseOut <- return $ M.parse p "<stdin>" expr
-    case parseOut of
-        Left err -> throwE $ ErrParseError err
-        Right ast ->
-            case TypeCheck.getTypeDerivation ast of
-                Left err -> throwE $ ErrTypeDerivError err
-                Right (_, rule) -> do
-                    renderer <- lift $ asks optRenderer
-                    case renderer of
-                        RLatex cfg ->
-                            let parsedExpr = RendererLatex.renderLatex cfg rule in
-                            return $ ResDerivation parsedExpr
-
-program2 :: Program Result
-program2 = do
     liftIO (T.hGetContents stdin)
     >>= parseAsSyntaxSelect
     >>= typeDeriveExpr
     >>= renderTypeDerivation
 
 parseAsSyntaxSelect :: Text -> Program AST.Expr
---parseAsSyntaxSelect = return . mapLeft ErrParseError . M.parse p "<stdin>"
 parseAsSyntaxSelect = withExceptT ErrParseError . except . M.parse p "<stdin>"
 typeDeriveExpr :: AST.Expr -> Program (Maybe AST.Type, DerivAST.Rule)
 typeDeriveExpr = withExceptT ErrTypeDerivError . except . TypeCheck.getTypeDerivation
