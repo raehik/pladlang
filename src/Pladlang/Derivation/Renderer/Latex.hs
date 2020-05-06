@@ -47,6 +47,7 @@ data Config = Config {
     cfgUseAmssymbRounderSetSymbol :: Bool
 } deriving (Eq, Show)
 
+defaultConfig :: Config
 defaultConfig = Config {
     cfgUseAmssymbRounderSetSymbol = True
 }

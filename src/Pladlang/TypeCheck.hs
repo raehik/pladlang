@@ -28,19 +28,23 @@ data Env = Env {
 tshow :: Show a => a -> Text
 tshow = T.pack . show
 
+addTypeBinding :: Text -> Type -> Env -> Env
 addTypeBinding v t env =
     let bindings = envBindings env in
     let bindings' = Map.insert v t bindings in
     env {envBindings=bindings'}
 
+changeExpr :: Expr -> Env -> Env
 changeExpr e env = env {envExpr=e}
 
+initEnv :: Expr -> Env
 initEnv e = Env {envBindings=Map.empty, envExpr=e}
 
 getTypeDerivation :: Expr -> Either Err (Maybe Type, DerivAST.Rule)
 getTypeDerivation e =
     runIdentity $ runExceptT $ runReaderT typeCheck $ initEnv e
 
+typeCheck :: Parser (Maybe Type, DerivAST.Rule)
 typeCheck = do
     env <- ask
     let expr = envExpr env
@@ -55,11 +59,11 @@ typeCheck = do
                     let sequent = formSequent (envBindings env) (exprToDerivExpr expr) (DerivAST.Tau Nothing)
                         rule = invalidRule (DerivAST.TypeErrorUndefinedVariableUsed v) sequent
                     in return (Nothing, rule)
-        ENum x ->
+        ENum _ ->
             let sequent = formSequent (envBindings env) (exprToDerivExpr expr) (typeToDerivType TNum)
                 rule = validRule "num" [] sequent
             in return (Just TNum, rule)
-        EStr x ->
+        EStr _ ->
             let sequent = formSequent (envBindings env) (exprToDerivExpr expr) (typeToDerivType TStr)
                 rule = validRule "str" [] sequent
             in return (Just TStr, rule)
@@ -141,13 +145,14 @@ typeCheck = do
                                 return (Just tBody, rule)
                             else
                                 return (Nothing, rule)
-                Just t ->
+                Just _ ->
                     let sequent = untypedSequent $ DerivAST.Tau Nothing
                         e2Rule = DerivAST.SequentOnly $ formSequent (envBindings env) (exprToDerivExpr e2) (DerivAST.Tau (Just 1))
                         rule = validRule "ap" [e1Rule, e2Rule] sequent
                     in return (Nothing, rule)
-        --_ -> throwErr ErrUnsupportedExpression
+        _ -> throwErr ErrUnsupportedExpression
 
+typeCheckNumNumNum :: Text -> Expr -> Expr -> Parser (Maybe Type, DerivAST.Rule)
 typeCheckNumNumNum name e1 e2 = do
     env <- ask
     let derivExpr = derivExprFunc name [e1, e2]
@@ -160,14 +165,14 @@ typeCheckNumNumNum name e1 e2 = do
                 Just TNum ->
                     let rule = validRule name [e1rule, e2rule] sequent
                     in return (Just TNum, rule)
-                Just typ ->
+                Just _ ->
                     let rule = validRule name [e1rule, e2rule] sequent
                     in return (Nothing, rule)
                 Nothing ->
                     --let rule = invalidRule (DerivAST.TypeErrorArgWrongType (DerivAST.Tau Nothing)) sequent
                     let rule = validRule name [e1rule, e2rule] sequent
                     in return (Nothing, rule)
-        Just typ ->
+        Just _ ->
             let rule = validRule name [e1rule] sequent
             in return (Just TNum, rule)
         Nothing ->
@@ -175,12 +180,15 @@ typeCheckNumNumNum name e1 e2 = do
             let rule = validRule name [e1rule] sequent
             in return (Nothing, rule)
 
+derivExprFunc :: Text -> [Expr] -> DerivAST.Expr
 derivExprFunc name es = DerivAST.EFunc name (map exprToDerivExpr es)
 
+throwErr :: Err -> Parser a
 throwErr err = lift $ throwE err
 
-exprToDerivExpr e =
-    case e of
+exprToDerivExpr :: Expr -> DerivAST.Expr
+exprToDerivExpr expr =
+    case expr of
         EVar v -> DerivAST.EVar v
         ENum x -> DerivAST.ENum x
         EStr x -> DerivAST.EStr x
@@ -195,8 +203,9 @@ exprToDerivExpr e =
             DerivAST.ELam (typeToDerivType t) v (exprToDerivExpr e)
         EAp e1 e2 ->
             DerivAST.EFunc "ap" [exprToDerivExpr e1, exprToDerivExpr e2]
-        --_ -> DerivAST.E Nothing
+        _ -> DerivAST.E Nothing
 
+validRule :: Text -> [DerivAST.Rule] -> DerivAST.Sequent -> DerivAST.Rule
 validRule name premises judgement =
     DerivAST.ValidRule DerivAST.ValidRule' {
         DerivAST.validRuleName=name,
@@ -204,12 +213,15 @@ validRule name premises judgement =
         DerivAST.validRuleJudgement=judgement
     }
 
+invalidRule :: DerivAST.TypeError -> DerivAST.Sequent -> DerivAST.Rule
 invalidRule err judgement =
     DerivAST.InvalidRule DerivAST.InvalidRule' {
         DerivAST.invalidRuleError=err,
         DerivAST.invalidRuleJudgement=judgement
     }
 
+formSequent
+    :: Map Text Type -> DerivAST.Expr -> DerivAST.Type -> DerivAST.Sequent
 formSequent bindings expr typ =
     let context = bindingsToDerivContext bindings in
     DerivAST.Sequent {
@@ -218,6 +230,7 @@ formSequent bindings expr typ =
         DerivAST.sequentType=typ
     }
 
+bindingsToDerivContext :: Map Text Type -> [DerivAST.ContextPart]
 bindingsToDerivContext bs =
     if Map.null bs then
         []
@@ -231,12 +244,14 @@ typeToDerivType TBool = DerivAST.TBool
 typeToDerivType (TArrow t1 t2) =
     DerivAST.TArrow (typeToDerivType t1) (typeToDerivType t2)
 
+ruleUnsupported :: DerivAST.Rule
 ruleUnsupported =
     DerivAST.InvalidRule DerivAST.InvalidRule' {
         DerivAST.invalidRuleError=DerivAST.TypeErrorAny,
         DerivAST.invalidRuleJudgement=sequentEmpty
     }
 
+sequentEmpty :: DerivAST.Sequent
 sequentEmpty =
     DerivAST.Sequent {
         DerivAST.sequentContext=[],

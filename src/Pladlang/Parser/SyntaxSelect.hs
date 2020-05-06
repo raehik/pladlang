@@ -7,7 +7,7 @@ module Pladlang.Parser.SyntaxSelect
 import Pladlang.AST
 import Pladlang.Parser.Utils
 import Data.Text (Text)
-import Data.List.NonEmpty ( NonEmpty( (:|) ), (<|) )
+import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NE
 import Data.Semigroup
 import qualified Pladlang.Parser.LangEF as Parser.LangEF
@@ -26,4 +26,4 @@ pSyntaxSelectBlock = strLexeme "#syntax" *>
 
 -- | Helper function for making syntax parsers.
 makeSyntaxParser :: Parser Expr -> Text -> Parser (NonEmpty Expr)
-makeSyntaxParser parser id = strLexeme id *> NE.some1 parser
+makeSyntaxParser parser ident = strLexeme ident *> NE.some1 parser

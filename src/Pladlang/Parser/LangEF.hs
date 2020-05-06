@@ -28,8 +28,10 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Control.Monad.Combinators.Expr
 
+pExpr :: Parser Expr
 pExpr = makeExprParser term table <?> "expression"
 
+term :: Parser Expr
 term =
     brackets pExpr
     <|> EStr <$> (charLexeme '"' *> pExprStrTextAnyPrintable)
@@ -43,6 +45,7 @@ term =
     <|> pExprVar
     <?> "term"
 
+table :: [[Operator Parser Expr]]
 table =
     [ [ binaryCh  '*'  ETimes ]
     , [ binaryCh  '+'  EPlus ]
@@ -54,10 +57,19 @@ opChar = oneOf chars where
     chars :: [Char]
     chars = "!#$%&*+./<=>?@\\^|-~"
 
+binaryCh :: Char -> (a -> a -> a) -> Operator Parser a
 binaryCh  name f = InfixL (f <$ opCh  name)
+
+binaryStr :: Text -> (a -> a -> a) -> Operator Parser a
 binaryStr name f = InfixL (f <$ opStr name)
-binaryEmpty    f = InfixL (try (pure f))
+
+--binaryEmpty :: (a -> a -> a) -> Operator Parser a
+--binaryEmpty    f = InfixL (try (pure f))
+
+opCh :: Char -> Parser Char
 opCh  n = lexeme . try $ char   n <* notFollowedBy opChar
+
+opStr :: Text -> Parser Text
 opStr n = lexeme . try $ string n <* notFollowedBy opChar
 
 pExprVar :: Parser Expr
@@ -116,10 +128,12 @@ pType :: Parser Type
 pType =
     makeExprParser typeTerm [[opTypeArrow]] <?> "type"
 
+typeTerm :: Parser Type
 typeTerm =
     brackets pType
     <|> TNum <$ strLexeme "num"
     <|> TStr <$ strLexeme "str"
     <|> TBool <$ strLexeme "bool"
 
+opTypeArrow :: Operator Parser Type
 opTypeArrow = InfixR (TArrow <$ opStr "->")

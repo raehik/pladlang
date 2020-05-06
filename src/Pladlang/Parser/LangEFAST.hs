@@ -19,9 +19,6 @@ import Pladlang.Parser.Utils
 import qualified Text.Megaparsec.Char.Lexer as L
 import Data.Text (Text)
 import qualified Data.Text as T
-import Control.Monad.Combinators.Expr
---import qualified Data.List.NonEmpty as NE
-import qualified Control.Applicative.Combinators.NonEmpty as CombNE
 
 pExpr :: Parser Expr
 pExpr =
@@ -42,7 +39,7 @@ pExpr =
 pExprStr :: Parser Expr
 pExprStr = do
     strLexeme "str"
-    char '['
+    _ <- char '['
     str <- someTill printChar (charLexeme ']')
     return $ EStr . T.pack $ str
 
@@ -74,6 +71,7 @@ pExprLam = do
     charLexeme ')'
     return $ ELam t x e
 
+strBeforeSquareBrackets :: Text -> Parser a -> Parser a
 strBeforeSquareBrackets str parser = strLexeme str *> squareBrackets parser
 
 pType :: Parser Type
@@ -107,6 +105,3 @@ pFunction3 name f parser = do
     p3 <- parser
     charLexeme ')'
     return $ f p1 p2 p3
-
--- | TODO tmp, for debugging
-rp parser str = parseTest (parser <* eof) (T.pack str)

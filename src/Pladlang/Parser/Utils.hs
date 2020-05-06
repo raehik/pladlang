@@ -15,6 +15,11 @@ import Data.Void
 type Parser = Parsec Void Text
 
 ------------------------------------------------------------
+-- | Consume spaces before a parser, and consume EOF after it.
+topParse :: Parser a -> Parser a
+topParse = between sc eof
+
+------------------------------------------------------------
 -- | Space consumer.
 sc :: Parser ()
 sc = L.space
@@ -27,12 +32,16 @@ lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
 
 -- | Wrapper for string lexemes.
-strLexeme :: Text -> Parser Text
-strLexeme = lexeme . string
+--strLexeme :: Text -> Parser Text
+--strLexeme = lexeme . string
+strLexeme :: Text -> Parser ()
+strLexeme str = (lexeme . string) str *> pure ()
 
 -- | Wrapper for char lexemes.
-charLexeme :: Char -> Parser Char
-charLexeme = lexeme . char
+--charLexeme :: Char -> Parser Char
+--charLexeme = lexeme . char
+charLexeme :: Char -> Parser ()
+charLexeme ch = (lexeme . char) ch *> pure ()
 
 -- | Wrapper for parsers between string lexemes.
 betweenStrLexemes :: Text -> Text -> Parser a -> Parser a

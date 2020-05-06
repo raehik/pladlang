@@ -42,9 +42,9 @@ execParserWithDefaults parser =
     customExecParser (prefs $ showHelpOnError <> noBacktrack) $ decorateParser parser
   where
     decorateParser :: Parser a -> ParserInfo a
-    decorateParser parser =
+    decorateParser p =
         info
-            (helper <*> versionOpt <*> parser)
+            (helper <*> versionOpt <*> p)
             (fullDesc <> progDesc desc)
     versionOpt :: Parser (a -> a)
     versionOpt = infoOption ver (long "version" <> help "Show version")
