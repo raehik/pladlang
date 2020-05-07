@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 
 import System.IO
 import qualified Pladlang.AST as AST
@@ -33,9 +34,11 @@ main :: IO ()
 main = Options.parse >>= runReaderT (runExceptT program >>= either handleProgramError handleProgramResult)
 
 handleProgramError :: Err -> ReaderT Options.Options IO ()
-handleProgramError _ = liftIO $ putStrLn "error boyo"
+handleProgramError = \case
+    ErrParseError errBundle -> liftIO . putStr $ M.errorBundlePretty errBundle
+    err -> (liftIO . print) err
 handleProgramResult :: Result -> ReaderT Options.Options IO ()
-handleProgramResult _ = liftIO $ putStrLn "success! of some sort"
+handleProgramResult = liftIO . print
 
 program :: Program Result
 program = do

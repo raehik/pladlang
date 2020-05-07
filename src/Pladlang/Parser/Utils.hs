@@ -19,6 +19,9 @@ type Parser = Parsec Void Text
 topParse :: Parser a -> Parser a
 topParse = between sc eof
 
+pKeyword :: Text -> Parser ()
+pKeyword keyword = lexeme (string keyword <* notFollowedBy alphaNumChar) *> pure ()
+
 ------------------------------------------------------------
 -- | Space consumer.
 sc :: Parser ()
@@ -44,8 +47,8 @@ charLexeme :: Char -> Parser ()
 charLexeme ch = (lexeme . char) ch *> pure ()
 
 -- | Wrapper for parsers between string lexemes.
-betweenStrLexemes :: Text -> Text -> Parser a -> Parser a
-betweenStrLexemes start end = between (strLexeme start) (strLexeme end)
+betweenKeywords :: Text -> Text -> Parser a -> Parser a
+betweenKeywords start end = between (pKeyword start) (pKeyword end)
 
 -- | Wrapper for parsers between char lexemes.
 betweenCharLexemes :: Char -> Char -> Parser a -> Parser a

@@ -1,4 +1,29 @@
 # Design notes
+## CLI commands
+**Overall program description:** Parse an expression and render its type
+derivation or reduction.
+
+We also allow parsing a type derivation or reduction directly, allowing us to
+render rules easily.
+
+  * parse expression -> create type derivation -> render type derivation
+    * select parser (no specific options)
+    * select renderer, renderer-specific options
+  * parse type derivation -> render type derivation
+    * (only one parser -- this one needs writing lol, will be fun)
+    * select renderer, renderer-specific options
+  * parse expression -> create reduction -> render reduction
+    * select parser (no specific options)
+    * select renderer, renderer-specific options
+  * parse reduction -> render reduction
+    * (only one parser -- this one needs writing lol, will be fun)
+    * select renderer, renderer-specific options
+
+I could *almost* write a lots of what you'd want into the expression parsers
+themselves... but sadly, the language doesn't allow you to indicate context. But
+if I added *that*, I'm thinking I could do it. I'd need lots of extra syntax for
+indicating metavariables.
+
 ## CLI
   * renderer = command (because they all have their own flags)
 

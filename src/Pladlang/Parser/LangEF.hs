@@ -36,8 +36,8 @@ term =
     brackets pExpr
     <|> EStr <$> (charLexeme '"' *> pExprStrTextAnyPrintable)
     <|> ENum <$> lexeme L.decimal
-    <|> ETrue <$ strLexeme "true"
-    <|> EFalse <$ strLexeme "false"
+    <|> ETrue <$ pKeyword "true"
+    <|> EFalse <$ pKeyword "false"
     <|> ELen <$> betweenCharLexemes '|' '|' pExpr
     <|> pExprIf
     <|> pExprLet
@@ -92,21 +92,21 @@ pExprStrTextAnyPrintable = do
 
 pExprIf :: Parser Expr
 pExprIf = do
-    strLexeme "if"
+    pKeyword "if"
     e <- pExpr
-    strLexeme "then"
+    pKeyword "then"
     e1 <- pExpr
-    strLexeme "else"
+    pKeyword "else"
     e2 <- pExpr
     return $ EIf e e1 e2
 
 pExprLet :: Parser Expr
 pExprLet = do
-    strLexeme "let"
+    pKeyword "let"
     x <- pVar
-    strLexeme "be"
+    pKeyword "be"
     e1 <- pExpr
-    strLexeme "in"
+    pKeyword "in"
     e2 <- pExpr
     return $ ELet e1 x e2
 
@@ -131,9 +131,9 @@ pType =
 typeTerm :: Parser Type
 typeTerm =
     brackets pType
-    <|> TNum <$ strLexeme "num"
-    <|> TStr <$ strLexeme "str"
-    <|> TBool <$ strLexeme "bool"
+    <|> TNum  <$ pKeyword "num"
+    <|> TStr  <$ pKeyword "str"
+    <|> TBool <$ pKeyword "bool"
 
 opTypeArrow :: Operator Parser Type
 opTypeArrow = InfixR (TArrow <$ opStr "->")
