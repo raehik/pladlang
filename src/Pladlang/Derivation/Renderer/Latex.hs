@@ -135,10 +135,7 @@ showType (TArrow t1 t2) = do
     t1Rendered <- showType t1
     t2Rendered <- showType t2
     return $ mathtt "arr" <> "(" <> t1Rendered <> " ; " <> t2Rendered <> ")"
-showType (Tau Nothing) = return "\\tau"
-showType (Tau (Just subscriptNum)) = do
-    tauStart <- showType (Tau Nothing)
-    return $ tauStart <> "_{" <> tshow subscriptNum <> "}"
+showType (TMeta text) = return $ "\\tau_{" <> text <> "}"
 
 showExpr :: Expr -> Renderer Text
 showExpr (EVar v) = return $ "\\textcolor[rgb]{0.0, 0.5, 1.0}{" <> v <> "}"
@@ -168,10 +165,7 @@ showExpr (ELam t v e) = do
         <> "\\{" <> tRendered <> "\\}"
         <> "(" <> vRendered <> " . "
         <> eRendered <> ")"
-showExpr (E Nothing) = return "e"
-showExpr (E (Just subscriptNum)) = do
-    eStart <- showExpr (E Nothing)
-    return $ eStart <> "_{" <> tshow subscriptNum <> "}"
+showExpr (EMeta text) = return $ "e_{" <> text <> "}"
 
 --------------------------------------------------------------------------------
 -- Show -> Text.

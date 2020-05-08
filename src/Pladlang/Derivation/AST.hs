@@ -67,8 +67,8 @@ data Expr
     | EFunc Text [Expr]
     | ELet Expr Text Expr
     | ELam Type Text Expr
-    -- | Expression metavar. The optional integer appends a subscript number.
-    | E (Maybe Integer)
+    -- | Expression metavar.
+    | EMeta Text
     deriving (Show)
 
 data Type
@@ -76,8 +76,8 @@ data Type
     | TStr
     | TBool
     | TArrow Type Type
-    -- | Type metavar. The optional integer appends a subscript number.
-    | Tau (Maybe Integer)
+    -- | Type metavar.
+    | TMeta Text
     deriving (Show)
 
 -- | Renderers must wrap their output in this type to indicate whether it's

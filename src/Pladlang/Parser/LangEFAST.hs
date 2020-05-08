@@ -19,7 +19,7 @@ import Pladlang.Parser.Utils
 import qualified Text.Megaparsec.Char.Lexer as L
 import Data.Text (Text)
 import qualified Data.Text as T
-import Control.Applicative
+import Control.Applicative hiding (many)
 
 pExpr :: Parser Expr
 pExpr =
@@ -72,7 +72,7 @@ pBindExpr :: Parser (Text, Expr)
 pBindExpr = liftA2 (,) pVar (charLexeme '.' *> pExpr)
 
 pVar :: Parser Text
-pVar = ((<>) . T.singleton) <$> letterChar <*> (T.pack <$> lexeme (Control.Applicative.many alphaNumChar))
+pVar = ((<>) . T.singleton) <$> letterChar <*> (T.pack <$> lexeme (many alphaNumChar))
 
 pExprLam :: Parser Expr
 pExprLam = do

@@ -1,7 +1,7 @@
 #syntax ef
 
 -- Fundamentals
-x
+  x
 ; 1
 ; "string"
 ; true
@@ -15,8 +15,13 @@ x
 ; let x be 1 in x
 ; \x:num.x == 1
 ; f x
+; $"a" a
 
--- Testing
+-- Metavars
+; \x:$"1".$""
+; \x:$"1".$("":$"2") -- (x is t1, the expr it's bound in is t2)
+
+-- Assorted
 ; let iff be if true then false else false in lett
 ; f "lol\n\"this\" really works? sick"
 ; f x y + g a b

@@ -9,14 +9,16 @@ module Pladlang.AST where
 import Data.Text (Text)
 
 data Type
-    = TNum
+    = TMeta Text
+    | TNum
     | TStr
     | TBool
     | TArrow Type Type
     deriving (Show, Eq)
 
 data Expr
-    = EVar Text
+    = EMeta Text (Maybe Type)
+    | EVar Text
     | ENum Integer
     | EStr Text
     | ETrue

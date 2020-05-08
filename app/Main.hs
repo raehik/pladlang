@@ -49,10 +49,10 @@ writeResDerivation res = (liftIO . print) res
 program :: Program Result
 program = do
     liftIO (T.hGetContents stdin)
-    >>= parseAsSyntaxSelect >>= return . ResPladlangExpr
-    -- >>= parseAsSyntaxSelect
-    -- >>= typeDeriveExpr
-    -- >>= renderTypeDerivation
+    -- >>= parseAsSyntaxSelect >>= return . ResPladlangExpr
+    >>= parseAsSyntaxSelect
+    >>= typeDeriveExpr
+    >>= renderTypeDerivation
 
 parseAsSyntaxSelect :: Text -> Program AST.Expr
 parseAsSyntaxSelect = withExceptT ErrParseError . except . M.parse parser "<stdin>"

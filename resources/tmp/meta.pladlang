@@ -1,0 +1,3 @@
+#syntax ef
+    -- (x is t1, the expr it's bound in is t2)
+    \x:$"1".$("":$"2")

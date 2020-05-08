@@ -27,6 +27,7 @@ import qualified Text.Megaparsec.Char.Lexer as L
 import Data.Text (Text)
 import qualified Data.Text as T
 import Control.Monad.Combinators.Expr
+import Control.Applicative hiding (many)
 
 pExpr :: Parser Expr
 pExpr = makeExprParser (try term) table <?> "expression"
@@ -55,6 +56,7 @@ term = choice
     , pExprLet
     , pExprLam
     , pExprVar
+    , pExprMetaVar
     ] <?> "term"
 
 pStringLiteral :: Parser Text
@@ -72,7 +74,7 @@ table =
 opChar :: Parser Char
 opChar = oneOf chars where
     chars :: [Char]
-    chars = "!#$%&*+./<=>?@\\^|-~"
+    chars = "!%&*+/<=>?@^-~"
 
 binaryCh :: Char -> (a -> a -> a) -> Operator Parser a
 binaryCh  name f = InfixL (f <$ opCh  name)
@@ -138,11 +140,23 @@ pType =
     makeExprParser typeTerm [[opTypeArrow]] <?> "type"
 
 typeTerm :: Parser Type
-typeTerm =
-    brackets pType
-    <|> TNum  <$ pKeyword "num"
-    <|> TStr  <$ pKeyword "str"
-    <|> TBool <$ pKeyword "bool"
+typeTerm = choice
+    [ brackets pType
+    , TNum  <$  pKeyword "num"
+    , TStr  <$  pKeyword "str"
+    , TBool <$  pKeyword "bool"
+    , TMeta <$> (char '$' *> pStringLiteral)
+    ]
+
+pExprMetaVar :: Parser Expr
+pExprMetaVar = char '$' *> choice
+    [ todo
+    , EMeta <$> pStringLiteral <*> pure Nothing
+    ]
+  where
+    todo :: Parser Expr
+    todo = (\(e, t) -> EMeta e (Just t)) <$> brackets todo'
+    todo' = liftA2 (,) pStringLiteral (charLexeme ':' *> pType)
 
 opTypeArrow :: Operator Parser Type
 opTypeArrow = InfixR (TArrow <$ opStr "->")

@@ -42,6 +42,12 @@ getTypeDerivation = runExcept . flip runReaderT initEnv . typeCheck
 
 typeCheck :: Expr -> Parser (Maybe Type, DerivAST.Rule)
 typeCheck expr = case expr of
+    EMeta e t -> do
+        bindings <- asks envBindings
+        let t' = maybe (TMeta "") id t
+        let sequent = formSequent bindings (exprToDerivExpr expr) (typeToDerivType t')
+            rule = DerivAST.SequentOnly $ sequent
+        return (Nothing, rule)
     ETrue -> do
         bindings <- asks envBindings
         let sequent = formSequent bindings (exprToDerivExpr ETrue) (typeToDerivType TBool)
@@ -60,7 +66,7 @@ typeCheck expr = case expr of
                     rule = validRule "var" [] sequent
                 in return (Just t, rule)
             Nothing ->
-                let sequent = formSequent bindings (exprToDerivExpr expr) (DerivAST.Tau Nothing)
+                let sequent = formSequent bindings (exprToDerivExpr expr) derivASTEmptyMetaType
                     rule = invalidRule (DerivAST.TypeErrorUndefinedVariableUsed v) sequent
                 in return (Nothing, rule)
     ENum _ -> do
@@ -109,10 +115,10 @@ typeCheck expr = case expr of
         case e1Typ of
             Nothing -> do
                 bindings <- asks envBindings
-                let sequent = formSequent bindings (exprToDerivExpr expr) (DerivAST.Tau Nothing)
-                    --rule = invalidRule (DerivAST.TypeErrorArgWrongType (DerivAST.Tau Nothing)) sequent
-                    e2SequentContext = (DerivAST.Binding v (DerivAST.Tau Nothing):bindingsToDerivContext bindings)
-                    e2Sequent = DerivAST.Sequent { DerivAST.sequentContext=e2SequentContext, DerivAST.sequentExpr=exprToDerivExpr e2, DerivAST.sequentType=DerivAST.Tau (Just 1) }
+                let sequent = formSequent bindings (exprToDerivExpr expr) derivASTEmptyMetaType
+                    --rule = invalidRule (DerivAST.TypeErrorArgWrongType derivASTEmptyMetaType) sequent
+                    e2SequentContext = (DerivAST.Binding v derivASTEmptyMetaType:bindingsToDerivContext bindings)
+                    e2Sequent = DerivAST.Sequent { DerivAST.sequentContext=e2SequentContext, DerivAST.sequentExpr=exprToDerivExpr e2, DerivAST.sequentType=DerivAST.TMeta "1" }
                     e2Rule = DerivAST.SequentOnly $ e2Sequent
                     rule = validRule "let" [e1Rule, e2Rule] sequent
                 return (Nothing, rule)
@@ -121,7 +127,7 @@ typeCheck expr = case expr of
                 case e2Typ of
                     Nothing -> do
                         bindings <- asks envBindings
-                        let sequent = formSequent bindings (exprToDerivExpr expr) (DerivAST.Tau Nothing)
+                        let sequent = formSequent bindings (exprToDerivExpr expr) derivASTEmptyMetaType
                             rule = validRule "let" [e1Rule, e2Rule] sequent
                         return (Nothing, rule)
                     Just e2Typ' -> do
@@ -136,7 +142,7 @@ typeCheck expr = case expr of
         (eTyp, eRule) <- local (addTypeBinding v t) (typeCheck e)
         case eTyp of
             Nothing ->
-                let sequent = untypedSequent $ derivTypePart (DerivAST.Tau Nothing)
+                let sequent = untypedSequent $ derivTypePart derivASTEmptyMetaType
                     rule = validRule "lam" [eRule] sequent
                 in return (Nothing, rule)
             Just eTyp' ->
@@ -149,8 +155,8 @@ typeCheck expr = case expr of
         (e1Typ, e1Rule) <- typeCheck e1
         case e1Typ of
             Nothing ->
-                let sequent = untypedSequent $ DerivAST.Tau Nothing
-                    e2Rule = DerivAST.SequentOnly $ formSequent bindings (exprToDerivExpr e2) (DerivAST.Tau (Just 1))
+                let sequent = untypedSequent $ derivASTEmptyMetaType
+                    e2Rule = DerivAST.SequentOnly $ formSequent bindings (exprToDerivExpr e2) (DerivAST.TMeta "1")
                     rule = validRule "ap" [e1Rule, e2Rule] sequent
                 in return (Nothing, rule)
             Just (TArrow tArg tBody) -> do
@@ -166,8 +172,8 @@ typeCheck expr = case expr of
                         else
                             return (Nothing, rule)
             Just _ ->
-                let sequent = untypedSequent $ DerivAST.Tau Nothing
-                    e2Rule = DerivAST.SequentOnly $ formSequent bindings (exprToDerivExpr e2) (DerivAST.Tau (Just 1))
+                let sequent = untypedSequent $ derivASTEmptyMetaType
+                    e2Rule = DerivAST.SequentOnly $ formSequent bindings (exprToDerivExpr e2) (DerivAST.TMeta "1")
                     rule = validRule "ap" [e1Rule, e2Rule] sequent
                 in return (Nothing, rule)
     e -> throwErr $ ErrUnsupportedExpression (tshow e)
@@ -189,14 +195,14 @@ typeCheckNumNumNum name e1 e2 = do
                     let rule = validRule name [e1rule, e2rule] sequent
                     in return (Nothing, rule)
                 Nothing ->
-                    --let rule = invalidRule (DerivAST.TypeErrorArgWrongType (DerivAST.Tau Nothing)) sequent
+                    --let rule = invalidRule (DerivAST.TypeErrorArgWrongType derivASTEmptyMetaType) sequent
                     let rule = validRule name [e1rule, e2rule] sequent
                     in return (Nothing, rule)
         Just _ ->
             let rule = validRule name [e1rule] sequent
             in return (Just TNum, rule)
         Nothing ->
-            --let rule = invalidRule (DerivAST.TypeErrorArgWrongType (DerivAST.Tau Nothing)) sequent
+            --let rule = invalidRule (DerivAST.TypeErrorArgWrongType derivASTEmptyMetaType) sequent
             let rule = validRule name [e1rule] sequent
             in return (Nothing, rule)
 
@@ -223,7 +229,7 @@ exprToDerivExpr expr =
             DerivAST.ELam (typeToDerivType t) v (exprToDerivExpr e)
         EAp e1 e2 ->
             DerivAST.EFunc "ap" [exprToDerivExpr e1, exprToDerivExpr e2]
-        _ -> DerivAST.E Nothing
+        _ -> DerivAST.EMeta ""
 
 validRule :: Text -> [DerivAST.Rule] -> DerivAST.Sequent -> DerivAST.Rule
 validRule name premises judgement =
@@ -258,6 +264,7 @@ bindingsToDerivContext bs =
         map (\(v, t) -> DerivAST.Binding v (typeToDerivType t)) (Map.assocs bs)
 
 typeToDerivType :: Type -> DerivAST.Type
+typeToDerivType (TMeta text) = DerivAST.TMeta text
 typeToDerivType TNum = DerivAST.TNum
 typeToDerivType TStr = DerivAST.TStr
 typeToDerivType TBool = DerivAST.TBool
@@ -276,5 +283,8 @@ sequentEmpty =
     DerivAST.Sequent {
         DerivAST.sequentContext=[],
         DerivAST.sequentExpr=DerivAST.EVar "todo",
-        DerivAST.sequentType=DerivAST.Tau Nothing
+        DerivAST.sequentType=derivASTEmptyMetaType
     }
+
+--------------------------------------------------------------------------------
+derivASTEmptyMetaType = DerivAST.TMeta ""
