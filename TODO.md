@@ -1,5 +1,7 @@
 ## Parsing
   * parse top expression context
+  * clean up metavar syntax
+    * maybe allow empty `$` as empty var, empty type
 
 ## Unsorted
   * consider storing environment in an ordered list - slower, but may want to

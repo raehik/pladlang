@@ -150,13 +150,12 @@ typeTerm = choice
 
 pExprMetaVar :: Parser Expr
 pExprMetaVar = char '$' *> choice
-    [ todo
+    [ (\(e, t) -> EMeta e (Just t)) <$> brackets pVarAndType
     , EMeta <$> pStringLiteral <*> pure Nothing
     ]
   where
-    todo :: Parser Expr
-    todo = (\(e, t) -> EMeta e (Just t)) <$> brackets todo'
-    todo' = liftA2 (,) pStringLiteral (charLexeme ':' *> pType)
+    pVarAndType :: Parser (Text, Type)
+    pVarAndType = liftA2 (,) pStringLiteral (charLexeme ':' *> pType)
 
 opTypeArrow :: Operator Parser Type
 opTypeArrow = InfixR (TArrow <$ opStr "->")
