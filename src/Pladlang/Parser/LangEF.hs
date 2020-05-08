@@ -46,7 +46,7 @@ keywords =
 term :: Parser Expr
 term =
     brackets pExpr
-    <|> EStr <$> (charLexeme '"' *> pExprStrTextAnyPrintable)
+    <|> EStr <$> pStringLiteral
     <|> ENum <$> lexeme L.decimal
     <|> ETrue <$ pKeyword "true"
     <|> EFalse <$ pKeyword "false"
@@ -56,6 +56,9 @@ term =
     <|> pExprLam
     <|> pExprVar
     <?> "term"
+
+pStringLiteral :: Parser Text
+pStringLiteral = T.pack <$> (char '"' >> manyTill L.charLiteral (charLexeme '"'))
 
 table :: [[Operator Parser Expr]]
 table =
@@ -88,25 +91,12 @@ opStr n = lexeme . try $ string n <* notFollowedBy opChar
 pExprVar :: Parser Expr
 pExprVar = EVar <$> pVar
 
--- holy shit LOL
 pVar :: Parser Text
---pVar = pVar' <* noneOfTokens keywords
 pVar = noneOfTokens keywords *> pVar'
   where
     pVar' = ((<>) . T.singleton) <$> letterChar <*> (T.pack <$> lexeme (many alphaNumChar))
     noneOfTokens kw =
-        notFollowedBy $ choice $ map (try . pKeyword) kw
-
--- yeah lol
--- consumes up to a quote (eats the quote too but not returned)
-pExprStrTextAnyPrintable :: Parser Text
-pExprStrTextAnyPrintable = do
-    c <- printChar
-    case c of
-        '"' -> return ""
-        _ -> do
-            str <- pExprStrTextAnyPrintable
-            lexeme $ return $ T.cons c str
+        notFollowedBy $ choice $ map pKeyword kw
 
 pExprIf :: Parser Expr
 pExprIf = do
