@@ -29,7 +29,19 @@ import qualified Data.Text as T
 import Control.Monad.Combinators.Expr
 
 pExpr :: Parser Expr
-pExpr = makeExprParser term table <?> "expression"
+pExpr = makeExprParser (try term) table <?> "expression"
+
+keywords =
+    [ "if"
+    , "then"
+    , "else"
+    , "let"
+    , "be"
+    , "in"
+    , "true"
+    , "false"
+    ]
+
 
 term :: Parser Expr
 term =
@@ -47,7 +59,8 @@ term =
 
 table :: [[Operator Parser Expr]]
 table =
-    [ [ binaryCh  '*'  ETimes ]
+    [ [ binaryEmpty EAp ]
+    , [ binaryCh  '*'  ETimes ]
     , [ binaryCh  '+'  EPlus ]
     , [ binaryStr "++" ECat ]
     , [ binaryCh  '='  EEqual ] ]
@@ -63,8 +76,8 @@ binaryCh  name f = InfixL (f <$ opCh  name)
 binaryStr :: Text -> (a -> a -> a) -> Operator Parser a
 binaryStr name f = InfixL (f <$ opStr name)
 
---binaryEmpty :: (a -> a -> a) -> Operator Parser a
---binaryEmpty    f = InfixL (try (pure f))
+binaryEmpty :: (a -> a -> a) -> Operator Parser a
+binaryEmpty    f = InfixL (pure f)
 
 opCh :: Char -> Parser Char
 opCh  n = lexeme . try $ char   n <* notFollowedBy opChar
@@ -77,7 +90,12 @@ pExprVar = EVar <$> pVar
 
 -- holy shit LOL
 pVar :: Parser Text
-pVar = ((<>) . T.singleton) <$> letterChar <*> (T.pack <$> lexeme (many alphaNumChar))
+--pVar = pVar' <* noneOfTokens keywords
+pVar = noneOfTokens keywords *> pVar'
+  where
+    pVar' = ((<>) . T.singleton) <$> letterChar <*> (T.pack <$> lexeme (many alphaNumChar))
+    noneOfTokens kw =
+        notFollowedBy $ choice $ map (try . pKeyword) kw
 
 -- yeah lol
 -- consumes up to a quote (eats the quote too but not returned)

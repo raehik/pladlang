@@ -38,14 +38,21 @@ handleProgramError = \case
     ErrParseError errBundle -> liftIO . putStr $ M.errorBundlePretty errBundle
     err -> (liftIO . print) err
 handleProgramResult :: Result -> ReaderT Options.Options IO ()
-handleProgramResult = liftIO . print
+handleProgramResult (ResDerivation res) = writeResDerivation res
+handleProgramResult res = (liftIO . print) res
+
+writeResDerivation :: DerivAST.RenderedDerivation -> ReaderT Options.Options IO ()
+writeResDerivation (DerivAST.RenderedDerivationText res) =
+    (liftIO . T.putStrLn) res
+writeResDerivation res = (liftIO . print) res
 
 program :: Program Result
 program = do
     liftIO (T.hGetContents stdin)
-    >>= parseAsSyntaxSelect
-    >>= typeDeriveExpr
-    >>= renderTypeDerivation
+    >>= parseAsSyntaxSelect >>= return . ResPladlangExpr
+    -- >>= parseAsSyntaxSelect
+    -- >>= typeDeriveExpr
+    -- >>= renderTypeDerivation
 
 parseAsSyntaxSelect :: Text -> Program AST.Expr
 parseAsSyntaxSelect = withExceptT ErrParseError . except . M.parse parser "<stdin>"

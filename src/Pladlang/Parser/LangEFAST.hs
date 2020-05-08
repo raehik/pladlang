@@ -19,13 +19,14 @@ import Pladlang.Parser.Utils
 import qualified Text.Megaparsec.Char.Lexer as L
 import Data.Text (Text)
 import qualified Data.Text as T
+import Control.Applicative
 
 pExpr :: Parser Expr
 pExpr =
     ENum <$> strBeforeSquareBrackets "num" L.decimal
     <|> pExprStr
-    <|> ETrue <$ strLexeme "true"
-    <|> EFalse <$ strLexeme "false"
+    <|> ETrue <$ pKeyword "true"
+    <|> EFalse <$ pKeyword "false"
     <|> pFunction2 "plus" EPlus pExpr
     <|> pFunction2 "times" ETimes pExpr
     <|> pFunction2 "cat" ECat pExpr
@@ -33,19 +34,20 @@ pExpr =
     <|> pFunction2 "equal" EEqual pExpr
     <|> pFunction3 "if" EIf pExpr
     <|> pFunction2 "ap" EAp pExpr
-    <|> pExprLet
+    <|> pExprLet'
     <|> pExprLam
+    <|> EVar <$> pVar
 
 pExprStr :: Parser Expr
 pExprStr = do
-    strLexeme "str"
+    pKeyword "str"
     _ <- char '['
     str <- someTill printChar (charLexeme ']')
     return $ EStr . T.pack $ str
 
 pExprLet :: Parser Expr
 pExprLet = do
-    strLexeme "let"
+    pKeyword "let"
     charLexeme '('
     e1 <- pExpr
     charLexeme ';'
@@ -55,12 +57,26 @@ pExprLet = do
     charLexeme ')'
     return $ ELet e1 x e2
 
+pKw = pKeyword
+pExprLet' :: Parser Expr
+pExprLet' =
+    --(\(e1, (x, e2)) -> ELet e1 x e2) <$> (pKw "let" *> brackets ((,) <$> pExpr `pSemicolonSep` pBindExpr))
+    (\(e1, (x, e2)) -> ELet e1 x e2) <$> bracketedLet
+  where
+    bracketedLet :: Parser (Expr, (Text, Expr))
+    bracketedLet = pKw "let" *> brackets (pExpr `pSemicolonSep` pBindExpr)
+
+pSemicolonSep :: Parser a -> Parser b -> Parser (a, b)
+pSemicolonSep pL pR = liftA2 (,) pL (charLexeme ';' *> pR)
+pBindExpr :: Parser (Text, Expr)
+pBindExpr = liftA2 (,) pVar (charLexeme '.' *> pExpr)
+
 pVar :: Parser Text
-pVar = ((<>) . T.singleton) <$> letterChar <*> (T.pack <$> lexeme (many alphaNumChar))
+pVar = ((<>) . T.singleton) <$> letterChar <*> (T.pack <$> lexeme (Control.Applicative.many alphaNumChar))
 
 pExprLam :: Parser Expr
 pExprLam = do
-    strLexeme "lam"
+    pKeyword "lam"
     charLexeme '{'
     t <- pType
     charLexeme '}'
@@ -72,21 +88,21 @@ pExprLam = do
     return $ ELam t x e
 
 strBeforeSquareBrackets :: Text -> Parser a -> Parser a
-strBeforeSquareBrackets str parser = strLexeme str *> squareBrackets parser
+strBeforeSquareBrackets str parser = pKeyword str *> squareBrackets parser
 
 pType :: Parser Type
 pType =
-    TNum <$ strLexeme "num"
-    <|> TStr <$ strLexeme "str"
-    <|> TBool <$ strLexeme "bool"
+        TNum <$ pKeyword "num"
+    <|> TStr <$ pKeyword "str"
+    <|> TBool <$ pKeyword "bool"
     <|> pFunction2 "arr" TArrow pType
 
 pFunction1 :: Text -> (a -> a) -> Parser a -> Parser a
-pFunction1 name f parser = strLexeme name *> (f <$> brackets parser)
+pFunction1 name f parser = pKeyword name *> (f <$> brackets parser)
 
 pFunction2 :: Text -> (a -> a -> a) -> Parser a -> Parser a
 pFunction2 name f parser = do
-    strLexeme name
+    pKeyword name
     charLexeme '('
     p1 <- parser
     charLexeme ';'
@@ -96,7 +112,7 @@ pFunction2 name f parser = do
 
 pFunction3 :: Text -> (a -> a -> a -> a) -> Parser a -> Parser a
 pFunction3 name f parser = do
-    strLexeme name
+    pKeyword name
     charLexeme '('
     p1 <- parser
     charLexeme ';'

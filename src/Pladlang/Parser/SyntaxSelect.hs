@@ -30,8 +30,8 @@ pSyntaxSelectBlock = pKeyword "#syntax" *> pBlocks syntaxIdentifiers
 --   parsers.
 syntaxIdentifiers :: [(Text, Parser Expr)]
 syntaxIdentifiers =
-    [ ( "ef",     Parser.LangEF.pExpr )
-    , ( "ef-ast", Parser.LangEFAST.pExpr )
+    [ ( "efast", Parser.LangEFAST.pExpr )
+    , ( "ef"   , Parser.LangEF.pExpr )
     ]
 
 -- | Parse a non-empty list of expressions, separated by semicolons.

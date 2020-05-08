@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Pladlang.TypeCheck where
 
@@ -15,14 +16,13 @@ import qualified Data.Map as Map
 
 data Err
     = ErrTypeCheckFailed
-    | ErrUnsupportedExpression
+    | ErrUnsupportedExpression Text
     deriving (Show, Eq)
 
 type Parser = ReaderT Env (Except Err)
 
 data Env = Env {
-    envBindings :: Map Text Type,
-    envExpr :: Expr
+    envBindings :: Map Text Type
 } deriving (Show, Eq)
 
 tshow :: Show a => a -> Text
@@ -30,137 +30,157 @@ tshow = T.pack . show
 
 addTypeBinding :: Text -> Type -> Env -> Env
 addTypeBinding v t env =
-    let bindings = envBindings env in
-    let bindings' = Map.insert v t bindings in
-    env {envBindings=bindings'}
+    let bindings = envBindings env
+        bindings' = Map.insert v t bindings
+    in  env {envBindings=bindings'}
 
-changeExpr :: Expr -> Env -> Env
-changeExpr e env = env {envExpr=e}
-
-initEnv :: Expr -> Env
-initEnv e = Env {envBindings=Map.empty, envExpr=e}
+initEnv :: Env
+initEnv = Env {envBindings=Map.empty}
 
 getTypeDerivation :: Expr -> Either Err (Maybe Type, DerivAST.Rule)
-getTypeDerivation e =
-    runIdentity $ runExceptT $ runReaderT typeCheck $ initEnv e
+getTypeDerivation = runExcept . flip runReaderT initEnv . typeCheck
 
-typeCheck :: Parser (Maybe Type, DerivAST.Rule)
-typeCheck = do
-    env <- ask
-    let expr = envExpr env
-    case expr of
-        EVar v ->
-            case Map.lookup v (envBindings env) of
-                Just t ->
-                    let sequent = formSequent (envBindings env) (exprToDerivExpr expr) (typeToDerivType t)
-                        rule = validRule "var" [] sequent
-                    in return (Just t, rule)
-                Nothing ->
-                    let sequent = formSequent (envBindings env) (exprToDerivExpr expr) (DerivAST.Tau Nothing)
-                        rule = invalidRule (DerivAST.TypeErrorUndefinedVariableUsed v) sequent
-                    in return (Nothing, rule)
-        ENum _ ->
-            let sequent = formSequent (envBindings env) (exprToDerivExpr expr) (typeToDerivType TNum)
-                rule = validRule "num" [] sequent
-            in return (Just TNum, rule)
-        EStr _ ->
-            let sequent = formSequent (envBindings env) (exprToDerivExpr expr) (typeToDerivType TStr)
-                rule = validRule "str" [] sequent
-            in return (Just TStr, rule)
-        EPlus e1 e2 -> typeCheckNumNumNum "plus" e1 e2
-        ETimes e1 e2 -> typeCheckNumNumNum "times" e1 e2
-        ECat e1 e2 -> do
-            let sequent = formSequent (envBindings env) (exprToDerivExpr expr) (typeToDerivType TStr)
-            (e1Typ, e1Rule) <- local (changeExpr e1) typeCheck
-            case e1Typ of
-                Just TStr -> do
-                    (e2Typ, e2Rule) <- local (changeExpr e2) typeCheck
-                    let rule = validRule "cat" [e1Rule, e2Rule] sequent
-                        typ = case e2Typ of { Just TStr -> Just TStr; _ -> Nothing }
-                    return (typ, rule)
-                _ ->
-                    let e2Sequent = formSequent (envBindings env) (exprToDerivExpr e2) (typeToDerivType TStr)
-                        e2Rule = DerivAST.SequentOnly $ e2Sequent
-                        rule = validRule "cat" [e1Rule, e2Rule] sequent
-                    in return (Nothing, rule)
-        ELen e -> do
-            (eTyp, eRule) <- local (changeExpr e) typeCheck
-            let sequent = formSequent (envBindings env) (exprToDerivExpr expr) (typeToDerivType TNum)
-                rule = validRule "len" [eRule] sequent
-                typ = case eTyp of { Just TStr -> Just TNum; _ -> Nothing }
-            return (typ, rule)
-        ELet e1 v e2 -> do
-            (e1Typ, e1Rule) <- local (changeExpr e1) typeCheck
-            case e1Typ of
-                Nothing ->
-                    let sequent = formSequent (envBindings env) (exprToDerivExpr expr) (DerivAST.Tau Nothing)
-                        --rule = invalidRule (DerivAST.TypeErrorArgWrongType (DerivAST.Tau Nothing)) sequent
-                        e2SequentContext = (DerivAST.Binding v (DerivAST.Tau Nothing):bindingsToDerivContext (envBindings env))
-                        e2Sequent = DerivAST.Sequent { DerivAST.sequentContext=e2SequentContext, DerivAST.sequentExpr=exprToDerivExpr e2, DerivAST.sequentType=DerivAST.Tau (Just 1) }
-                        e2Rule = DerivAST.SequentOnly $ e2Sequent
-                        rule = validRule "let" [e1Rule, e2Rule] sequent
-                    in return (Nothing, rule)
-                Just e1Typ' -> do
-                    (e2Typ, e2Rule) <- local (changeExpr e2 . addTypeBinding v e1Typ') typeCheck
-                    case e2Typ of
-                        Nothing ->
-                            let sequent = formSequent (envBindings env) (exprToDerivExpr expr) (DerivAST.Tau Nothing)
-                                rule = validRule "let" [e1Rule, e2Rule] sequent
-                            in return (Nothing, rule)
-                        Just e2Typ' ->
-                            let sequent = formSequent (envBindings env) (exprToDerivExpr expr) (typeToDerivType e2Typ')
-                                rule = validRule "let" [e1Rule, e2Rule] sequent
-                            in return (Just e2Typ', rule)
-        ELam t v e -> do
-            let derivTypePart = DerivAST.TArrow (typeToDerivType t)
-                untypedSequent = formSequent (envBindings env) (exprToDerivExpr expr)
-            (eTyp, eRule) <- local (changeExpr e . addTypeBinding v t) typeCheck
-            case eTyp of
-                Nothing ->
-                    let sequent = untypedSequent $ derivTypePart (DerivAST.Tau Nothing)
-                        rule = validRule "lam" [eRule] sequent
-                    in return (Nothing, rule)
-                Just eTyp' ->
-                    let sequent = untypedSequent $ derivTypePart (typeToDerivType eTyp')
-                        rule = validRule "lam" [eRule] sequent
-                    in return (Just (TArrow t eTyp'), rule)
-        EAp e1 e2 -> do
-            let untypedSequent = formSequent (envBindings env) (exprToDerivExpr expr)
-            (e1Typ, e1Rule) <- local (changeExpr e1) typeCheck
-            case e1Typ of
-                Nothing ->
-                    let sequent = untypedSequent $ DerivAST.Tau Nothing
-                        e2Rule = DerivAST.SequentOnly $ formSequent (envBindings env) (exprToDerivExpr e2) (DerivAST.Tau (Just 1))
-                        rule = validRule "ap" [e1Rule, e2Rule] sequent
-                    in return (Nothing, rule)
-                Just (TArrow tArg tBody) -> do
-                    (e2Typ, e2Rule) <- local (changeExpr e2) typeCheck
-                    let sequent = untypedSequent $ typeToDerivType tBody
-                        rule = validRule "ap" [e1Rule, e2Rule] sequent
-                    case e2Typ of
-                        Nothing ->
+typeCheck :: Expr -> Parser (Maybe Type, DerivAST.Rule)
+typeCheck expr = case expr of
+    ETrue -> do
+        bindings <- asks envBindings
+        let sequent = formSequent bindings (exprToDerivExpr ETrue) (typeToDerivType TBool)
+            rule = validRule "bool" [] sequent
+        return (Just TBool, rule)
+    EFalse -> do
+        bindings <- asks envBindings
+        let sequent = formSequent bindings (exprToDerivExpr EFalse) (typeToDerivType TBool)
+            rule = validRule "bool" [] sequent
+        return (Just TBool, rule)
+    EVar v -> do
+        bindings <- asks envBindings
+        case Map.lookup v bindings of
+            Just t ->
+                let sequent = formSequent bindings (exprToDerivExpr expr) (typeToDerivType t)
+                    rule = validRule "var" [] sequent
+                in return (Just t, rule)
+            Nothing ->
+                let sequent = formSequent bindings (exprToDerivExpr expr) (DerivAST.Tau Nothing)
+                    rule = invalidRule (DerivAST.TypeErrorUndefinedVariableUsed v) sequent
+                in return (Nothing, rule)
+    ENum _ -> do
+        bindings <- asks envBindings
+        let sequent = formSequent bindings (exprToDerivExpr expr) (typeToDerivType TNum)
+            rule = validRule "num" [] sequent
+        return (Just TNum, rule)
+    EStr _ -> do
+        bindings <- asks envBindings
+        let sequent = formSequent bindings (exprToDerivExpr expr) (typeToDerivType TStr)
+            rule = validRule "str" [] sequent
+        return (Just TStr, rule)
+    EPlus e1 e2 -> typeCheckNumNumNum "plus" e1 e2
+    ETimes e1 e2 -> typeCheckNumNumNum "times" e1 e2
+    ECat e1 e2 -> do
+        bindings <- asks envBindings
+        let sequent = formSequent bindings (exprToDerivExpr expr) (typeToDerivType TStr)
+        (e1Typ, e1Rule) <- typeCheck e1
+        case e1Typ of
+            Just TStr -> do
+                (e2Typ, e2Rule) <- typeCheck e2
+                let rule = validRule "cat" [e1Rule, e2Rule] sequent
+                    typ = case e2Typ of { Just TStr -> Just TStr; _ -> Nothing }
+                return (typ, rule)
+            _ ->
+                let e2Sequent = formSequent bindings (exprToDerivExpr e2) (typeToDerivType TStr)
+                    e2Rule = DerivAST.SequentOnly $ e2Sequent
+                    rule = validRule "cat" [e1Rule, e2Rule] sequent
+                in return (Nothing, rule)
+    ELen e -> do
+        (eTyp, eRule) <- typeCheck e
+        bindings <- asks envBindings
+        let sequent = formSequent bindings (exprToDerivExpr expr) (typeToDerivType TNum)
+        case eTyp of
+            Just TStr ->
+                let rule = validRule "len" [eRule] sequent
+                in return (Just TNum, rule)
+            Nothing ->
+                let rule = invalidRule DerivAST.TypeErrorAny sequent
+                in return (Nothing, rule)
+            Just t ->
+                let rule = invalidRule (DerivAST.TypeErrorArgWrongType (typeToDerivType t)) sequent
+                in return (Nothing, rule)
+    ELet e1 v e2 -> do
+        (e1Typ, e1Rule) <- typeCheck e1
+        case e1Typ of
+            Nothing -> do
+                bindings <- asks envBindings
+                let sequent = formSequent bindings (exprToDerivExpr expr) (DerivAST.Tau Nothing)
+                    --rule = invalidRule (DerivAST.TypeErrorArgWrongType (DerivAST.Tau Nothing)) sequent
+                    e2SequentContext = (DerivAST.Binding v (DerivAST.Tau Nothing):bindingsToDerivContext bindings)
+                    e2Sequent = DerivAST.Sequent { DerivAST.sequentContext=e2SequentContext, DerivAST.sequentExpr=exprToDerivExpr e2, DerivAST.sequentType=DerivAST.Tau (Just 1) }
+                    e2Rule = DerivAST.SequentOnly $ e2Sequent
+                    rule = validRule "let" [e1Rule, e2Rule] sequent
+                return (Nothing, rule)
+            Just e1Typ' -> do
+                (e2Typ, e2Rule) <- local (addTypeBinding v e1Typ') (typeCheck e2)
+                case e2Typ of
+                    Nothing -> do
+                        bindings <- asks envBindings
+                        let sequent = formSequent bindings (exprToDerivExpr expr) (DerivAST.Tau Nothing)
+                            rule = validRule "let" [e1Rule, e2Rule] sequent
+                        return (Nothing, rule)
+                    Just e2Typ' -> do
+                        bindings <- asks envBindings
+                        let sequent = formSequent bindings (exprToDerivExpr expr) (typeToDerivType e2Typ')
+                            rule = validRule "let" [e1Rule, e2Rule] sequent
+                        return (Just e2Typ', rule)
+    ELam t v e -> do
+        bindings <- asks envBindings
+        let derivTypePart = DerivAST.TArrow (typeToDerivType t)
+            untypedSequent = formSequent bindings (exprToDerivExpr expr)
+        (eTyp, eRule) <- local (addTypeBinding v t) (typeCheck e)
+        case eTyp of
+            Nothing ->
+                let sequent = untypedSequent $ derivTypePart (DerivAST.Tau Nothing)
+                    rule = validRule "lam" [eRule] sequent
+                in return (Nothing, rule)
+            Just eTyp' ->
+                let sequent = untypedSequent $ derivTypePart (typeToDerivType eTyp')
+                    rule = validRule "lam" [eRule] sequent
+                in return (Just (TArrow t eTyp'), rule)
+    EAp e1 e2 -> do
+        bindings <- asks envBindings
+        let untypedSequent = formSequent bindings (exprToDerivExpr expr)
+        (e1Typ, e1Rule) <- typeCheck e1
+        case e1Typ of
+            Nothing ->
+                let sequent = untypedSequent $ DerivAST.Tau Nothing
+                    e2Rule = DerivAST.SequentOnly $ formSequent bindings (exprToDerivExpr e2) (DerivAST.Tau (Just 1))
+                    rule = validRule "ap" [e1Rule, e2Rule] sequent
+                in return (Nothing, rule)
+            Just (TArrow tArg tBody) -> do
+                (e2Typ, e2Rule) <- typeCheck e2
+                let sequent = untypedSequent $ typeToDerivType tBody
+                    rule = validRule "ap" [e1Rule, e2Rule] sequent
+                case e2Typ of
+                    Nothing ->
+                        return (Nothing, rule)
+                    Just e2Typ' ->
+                        if e2Typ' == tArg then
+                            return (Just tBody, rule)
+                        else
                             return (Nothing, rule)
-                        Just e2Typ' ->
-                            if e2Typ' == tArg then
-                                return (Just tBody, rule)
-                            else
-                                return (Nothing, rule)
-                Just _ ->
-                    let sequent = untypedSequent $ DerivAST.Tau Nothing
-                        e2Rule = DerivAST.SequentOnly $ formSequent (envBindings env) (exprToDerivExpr e2) (DerivAST.Tau (Just 1))
-                        rule = validRule "ap" [e1Rule, e2Rule] sequent
-                    in return (Nothing, rule)
-        _ -> throwErr ErrUnsupportedExpression
+            Just _ ->
+                let sequent = untypedSequent $ DerivAST.Tau Nothing
+                    e2Rule = DerivAST.SequentOnly $ formSequent bindings (exprToDerivExpr e2) (DerivAST.Tau (Just 1))
+                    rule = validRule "ap" [e1Rule, e2Rule] sequent
+                in return (Nothing, rule)
+    e -> throwErr $ ErrUnsupportedExpression (tshow e)
 
 typeCheckNumNumNum :: Text -> Expr -> Expr -> Parser (Maybe Type, DerivAST.Rule)
 typeCheckNumNumNum name e1 e2 = do
-    env <- ask
+    bindings <- asks envBindings
     let derivExpr = derivExprFunc name [e1, e2]
-    let sequent = formSequent (envBindings env) derivExpr (typeToDerivType TNum)
-    (e1typ, e1rule) <- local (changeExpr e1) typeCheck
+    let sequent = formSequent bindings derivExpr (typeToDerivType TNum)
+    (e1typ, e1rule) <- typeCheck e1
     case e1typ of
         Just TNum -> do
-            (e2typ, e2rule) <- local (changeExpr e2) typeCheck
+            (e2typ, e2rule) <- typeCheck e2
             case e2typ of
                 Just TNum ->
                     let rule = validRule name [e1rule, e2rule] sequent

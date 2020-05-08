@@ -1,0 +1,2 @@
+#syntax efast
+    let(true; x . len(x))
