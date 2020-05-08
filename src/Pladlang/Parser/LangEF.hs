@@ -44,21 +44,22 @@ keywords =
 
 
 term :: Parser Expr
-term =
-    brackets pExpr
-    <|> EStr <$> pStringLiteral
-    <|> ENum <$> lexeme L.decimal
-    <|> ETrue <$ pKeyword "true"
-    <|> EFalse <$ pKeyword "false"
-    <|> ELen <$> betweenCharLexemes '|' '|' pExpr
-    <|> pExprIf
-    <|> pExprLet
-    <|> pExprLam
-    <|> pExprVar
-    <?> "term"
+term = choice
+    [ brackets pExpr
+    , EStr <$> pStringLiteral
+    , ENum <$> lexeme L.decimal
+    , ETrue <$ pKeyword "true"
+    , EFalse <$ pKeyword "false"
+    , ELen <$> betweenCharLexemes '|' '|' pExpr
+    , pExprIf
+    , pExprLet
+    , pExprLam
+    , pExprVar
+    ] <?> "term"
 
 pStringLiteral :: Parser Text
-pStringLiteral = T.pack <$> (char '"' >> manyTill L.charLiteral (charLexeme '"'))
+pStringLiteral =
+    T.pack <$> (char '"' *> manyTill L.charLiteral (charLexeme '"'))
 
 table :: [[Operator Parser Expr]]
 table =
@@ -66,7 +67,7 @@ table =
     , [ binaryCh  '*'  ETimes ]
     , [ binaryCh  '+'  EPlus ]
     , [ binaryStr "++" ECat ]
-    , [ binaryCh  '='  EEqual ] ]
+    , [ binaryStr "==" EEqual ] ]
 
 opChar :: Parser Char
 opChar = oneOf chars where
@@ -121,15 +122,15 @@ pExprLet = do
 pExprLam :: Parser Expr
 pExprLam = do
     charLexeme '\\'
-    charLexeme '('
+    --charLexeme '('
     x <- pVar
     charLexeme ':'
     t <- pType
-    charLexeme ')'
+    --charLexeme ')'
     charLexeme '.'
-    charLexeme '('
+    --charLexeme '('
     e <- pExpr
-    charLexeme ')'
+    --charLexeme ')'
     return $ ELam t x e
 
 pType :: Parser Type

@@ -20,7 +20,7 @@ topParse :: Parser a -> Parser a
 topParse = between sc eof
 
 pKeyword :: Text -> Parser ()
-pKeyword keyword = lexeme (string keyword <* notFollowedBy alphaNumChar) *> pure ()
+pKeyword keyword = try $ lexeme (string keyword <* notFollowedBy alphaNumChar) *> pure ()
 
 ------------------------------------------------------------
 -- | Space consumer.

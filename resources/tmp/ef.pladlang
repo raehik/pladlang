@@ -1,4 +1,23 @@
 #syntax ef
-    f "lol\n\"this\" really works? sick"
-  ; f x y + g a b
-  ; let f be (\(x:num).(x*2)) in f 3
+
+-- Fundamentals
+x
+; 1
+; "string"
+; true
+; false
+; 1 + 1
+; 1 * 1
+; "left" ++ " right"
+; |"string length"|
+; 1 == 1
+; if true then true else false
+; let x be 1 in x
+; \x:num.x == 1
+; f x
+
+-- Testing
+; let iff be if true then false else false in lett
+; f "lol\n\"this\" really works? sick"
+; f x y + g a b
+; let f be \x:num.x*2 in f 3
