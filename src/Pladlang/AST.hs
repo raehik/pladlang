@@ -8,14 +8,6 @@ module Pladlang.AST where
 
 import Data.Text (Text)
 
-data Type
-    = TMeta Text
-    | TNum
-    | TStr
-    | TBool
-    | TArrow Type Type
-    deriving (Show, Eq)
-
 data Expr
     = EMeta Text (Maybe Type)
     | EVar Text
@@ -32,4 +24,21 @@ data Expr
     | ELet Expr Text Expr
     | ELam Type Text Expr
     | EAp Expr Expr
-    deriving (Show, Eq)
+    deriving (Eq, Show)
+
+data Type
+    = TMeta Text
+    | TNum
+    | TStr
+    | TBool
+    | TArrow Type Type
+    deriving (Eq, Show)
+
+data TopExpr
+    = TopExpr Expr Context
+    deriving (Eq, Show)
+
+data Context
+    | Context [(Text, Maybe Type)]
+    = EmptyContext
+    deriving (Eq, Show)

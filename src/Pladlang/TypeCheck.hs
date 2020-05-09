@@ -47,7 +47,7 @@ typeCheck expr = case expr of
         let t' = maybe (TMeta "") id t
         let sequent = formSequent bindings (exprToDerivExpr expr) (typeToDerivType t')
             rule = DerivAST.SequentOnly $ sequent
-        return (Nothing, rule)
+        return (t, rule)
     ETrue -> do
         bindings <- asks envBindings
         let sequent = formSequent bindings (exprToDerivExpr ETrue) (typeToDerivType TBool)
@@ -213,23 +213,23 @@ throwErr :: Err -> Parser a
 throwErr err = lift $ throwE err
 
 exprToDerivExpr :: Expr -> DerivAST.Expr
-exprToDerivExpr expr =
-    case expr of
-        EVar v -> DerivAST.EVar v
-        ENum x -> DerivAST.ENum x
-        EStr x -> DerivAST.EStr x
-        EPlus e1 e2 -> derivExprFunc "plus" [e1, e2]
-        ETimes e1 e2 -> derivExprFunc "times" [e1, e2]
-        ECat e1 e2 -> derivExprFunc "cat" [e1, e2]
-        ELen e ->
-            DerivAST.EFunc "len" [exprToDerivExpr e]
-        ELet e1 v e2 ->
-            DerivAST.ELet (exprToDerivExpr e1) v (exprToDerivExpr e2)
-        ELam t v e ->
-            DerivAST.ELam (typeToDerivType t) v (exprToDerivExpr e)
-        EAp e1 e2 ->
-            DerivAST.EFunc "ap" [exprToDerivExpr e1, exprToDerivExpr e2]
-        _ -> DerivAST.EMeta ""
+exprToDerivExpr = \case
+    EMeta e _ -> DerivAST.EMeta e
+    EVar v -> DerivAST.EVar v
+    ENum x -> DerivAST.ENum x
+    EStr x -> DerivAST.EStr x
+    EPlus e1 e2 -> derivExprFunc "plus" [e1, e2]
+    ETimes e1 e2 -> derivExprFunc "times" [e1, e2]
+    ECat e1 e2 -> derivExprFunc "cat" [e1, e2]
+    ELen e ->
+        DerivAST.EFunc "len" [exprToDerivExpr e]
+    ELet e1 v e2 ->
+        DerivAST.ELet (exprToDerivExpr e1) v (exprToDerivExpr e2)
+    ELam t v e ->
+        DerivAST.ELam (typeToDerivType t) v (exprToDerivExpr e)
+    EAp e1 e2 ->
+        DerivAST.EFunc "ap" [exprToDerivExpr e1, exprToDerivExpr e2]
+    _ -> DerivAST.EMeta ""
 
 validRule :: Text -> [DerivAST.Rule] -> DerivAST.Sequent -> DerivAST.Rule
 validRule name premises judgement =

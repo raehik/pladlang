@@ -1,0 +1,8 @@
+#syntax ef
+
+-- Typing rules
+    -- var
+
+    -- let
+      let x be $("1":$"1") in $("2":$"") -- @ {$""}
+    ; x -- @ {$"1", x:$"", $"2"}
