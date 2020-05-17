@@ -2,17 +2,19 @@
 
 module Pladlang.Parser.SyntaxSelect
     ( pSyntaxSelectBlocks
-    ) where
+    )
+where
 
-import Pladlang.AST
-import Pladlang.Parser.Utils
-import Data.Text (Text)
-import Data.List.NonEmpty (NonEmpty)
-import qualified Data.List.NonEmpty as NE
-import qualified Control.Applicative.Combinators.NonEmpty as CNE
-import Data.Semigroup
-import qualified Pladlang.Parser.LangEF as Parser.LangEF
-import qualified Pladlang.Parser.LangEFAST as Parser.LangEFAST
+import           Pladlang.AST
+import           Pladlang.Parser.Utils
+import           Data.Text                      ( Text )
+import           Data.List.NonEmpty             ( NonEmpty )
+import qualified Data.List.NonEmpty            as NE
+import qualified Control.Applicative.Combinators.NonEmpty
+                                               as CNE
+import           Data.Semigroup
+import qualified Pladlang.Parser.LangEF        as Parser.LangEF
+import qualified Pladlang.Parser.LangEFAST     as Parser.LangEFAST
 
 --------------------------------------------------------------------------------
 -- | Parse a non-empty list of synxtax-annotated blocks, and flatten.
@@ -30,9 +32,7 @@ pSyntaxSelectBlock = pKeyword "#syntax" *> pBlocks syntaxIdentifiers
 --   parsers.
 syntaxIdentifiers :: [(Text, Parser Expr)]
 syntaxIdentifiers =
-    [ ( "efast", Parser.LangEFAST.pExpr )
-    , ( "ef"   , Parser.LangEF.pExpr )
-    ]
+    [("efast", Parser.LangEFAST.pExpr), ("ef", Parser.LangEF.pExpr)]
 
 -- | Parse a non-empty list of expressions, separated by semicolons.
 --

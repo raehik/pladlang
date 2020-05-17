@@ -6,7 +6,7 @@
 -- information is separate to the AST.
 module Pladlang.AST where
 
-import Data.Text (Text)
+import           Data.Text                      ( Text )
 
 data Expr
     = EMeta Text (Maybe Type)

@@ -2,8 +2,9 @@
 
 module Options where
 
-import Options.Applicative
-import qualified Pladlang.Derivation.Renderer.Latex as RendererLatex
+import           Options.Applicative
+import qualified Pladlang.Derivation.Renderer.Latex
+                                               as RendererLatex
 
 data Options = Options {
     optRenderer :: Renderer
@@ -24,27 +25,27 @@ parse :: IO Options
 parse = execParserWithDefaults pOpts
 
 pOpts :: Parser Options
-pOpts = Options <$>
-    hsubparser
-        (  metavar "RENDERER"
-        <> commandGroup "Available renderers:"
-        <> latexRendererCmd )
+pOpts = Options <$> hsubparser
+    (  metavar "RENDERER"
+    <> commandGroup "Available renderers:"
+    <> latexRendererCmd
+    )
 
 latexRendererCmd :: Mod CommandFields Renderer
-latexRendererCmd =
-    command
-        "latex"
-        (info (RLatex <$> RendererLatex.options) (progDesc "Render derivation to LaTeX."))
+latexRendererCmd = command
+    "latex"
+    (info (RLatex <$> RendererLatex.options)
+          (progDesc "Render derivation to LaTeX.")
+    )
 
 -- | Run a parser with a few set preferences and --version, --help options.
 execParserWithDefaults :: Parser a -> IO a
 execParserWithDefaults parser =
-    customExecParser (prefs $ showHelpOnError <> noBacktrack) $ decorateParser parser
+    customExecParser (prefs $ showHelpOnError <> noBacktrack)
+        $ decorateParser parser
   where
     decorateParser :: Parser a -> ParserInfo a
     decorateParser p =
-        info
-            (helper <*> versionOpt <*> p)
-            (fullDesc <> progDesc desc)
+        info (helper <*> versionOpt <*> p) (fullDesc <> progDesc desc)
     versionOpt :: Parser (a -> a)
     versionOpt = infoOption ver (long "version" <> help "Show version")

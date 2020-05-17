@@ -4,13 +4,14 @@ module Pladlang.Parser.Utils
     ( module Pladlang.Parser.Utils
     , module Text.Megaparsec
     , module Text.Megaparsec.Char
-    ) where
+    )
+where
 
-import Text.Megaparsec
-import Text.Megaparsec.Char
-import qualified Text.Megaparsec.Char.Lexer as L
-import Data.Text (Text)
-import Data.Void
+import           Text.Megaparsec
+import           Text.Megaparsec.Char
+import qualified Text.Megaparsec.Char.Lexer    as L
+import           Data.Text                      ( Text )
+import           Data.Void
 
 type Parser = Parsec Void Text
 
@@ -20,15 +21,13 @@ topParse :: Parser a -> Parser a
 topParse = between sc eof
 
 pKeyword :: Text -> Parser ()
-pKeyword keyword = try $ lexeme (string keyword <* notFollowedBy alphaNumChar) *> pure ()
+pKeyword keyword =
+    try $ lexeme (string keyword <* notFollowedBy alphaNumChar) *> pure ()
 
 ------------------------------------------------------------
 -- | Space consumer.
 sc :: Parser ()
-sc = L.space
-    space1
-    (L.skipLineComment "--")
-    empty
+sc = L.space space1 (L.skipLineComment "--") empty
 
 -- | Generic wrapper for all lexemes (tokens) in the language.
 lexeme :: Parser a -> Parser a

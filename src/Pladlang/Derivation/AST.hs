@@ -11,8 +11,8 @@ directly.
 
 module Pladlang.Derivation.AST where
 
-import Data.Text (Text)
-import qualified Data.ByteString as B
+import           Data.Text                      ( Text )
+import qualified Data.ByteString               as B
 
 data TypeError
     = TypeErrorUndefinedVariableUsed Text

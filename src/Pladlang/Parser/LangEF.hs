@@ -19,45 +19,39 @@
 module Pladlang.Parser.LangEF
     ( pExpr
     , pType
-    ) where
+    )
+where
 
-import Pladlang.AST
-import Pladlang.Parser.Utils
-import qualified Text.Megaparsec.Char.Lexer as L
-import Data.Text (Text)
-import qualified Data.Text as T
-import Control.Monad.Combinators.Expr
-import Control.Applicative hiding (many)
+import           Pladlang.AST
+import           Pladlang.Parser.Utils
+import qualified Text.Megaparsec.Char.Lexer    as L
+import           Data.Text                      ( Text )
+import qualified Data.Text                     as T
+import           Control.Monad.Combinators.Expr
+import           Control.Applicative     hiding ( many )
 
 pExpr :: Parser Expr
 pExpr = makeExprParser (try term) table <?> "expression"
 
-keywords =
-    [ "if"
-    , "then"
-    , "else"
-    , "let"
-    , "be"
-    , "in"
-    , "true"
-    , "false"
-    ]
+keywords = ["if", "then", "else", "let", "be", "in", "true", "false"]
 
 
 term :: Parser Expr
-term = choice
-    [ brackets pExpr
-    , EStr <$> pStringLiteral
-    , ENum <$> lexeme L.decimal
-    , ETrue <$ pKeyword "true"
-    , EFalse <$ pKeyword "false"
-    , ELen <$> betweenCharLexemes '|' '|' pExpr
-    , pExprIf
-    , pExprLet
-    , pExprLam
-    , pExprVar
-    , pExprMetaVar
-    ] <?> "term"
+term =
+    choice
+            [ brackets pExpr
+            , EStr <$> pStringLiteral
+            , ENum <$> lexeme L.decimal
+            , ETrue <$ pKeyword "true"
+            , EFalse <$ pKeyword "false"
+            , ELen <$> betweenCharLexemes '|' '|' pExpr
+            , pExprIf
+            , pExprLet
+            , pExprLam
+            , pExprVar
+            , pExprMetaVar
+            ]
+        <?> "term"
 
 pStringLiteral :: Parser Text
 pStringLiteral =
@@ -65,28 +59,29 @@ pStringLiteral =
 
 table :: [[Operator Parser Expr]]
 table =
-    [ [ binaryEmpty EAp ]
-    , [ binaryCh  '*'  ETimes ]
-    , [ binaryCh  '+'  EPlus ]
-    , [ binaryStr "++" ECat ]
-    , [ binaryStr "==" EEqual ] ]
+    [ [binaryEmpty EAp]
+    , [binaryCh '*' ETimes]
+    , [binaryCh '+' EPlus]
+    , [binaryStr "++" ECat]
+    , [binaryStr "==" EEqual]
+    ]
 
 opChar :: Parser Char
-opChar = oneOf chars where
+opChar = oneOf chars  where
     chars :: [Char]
     chars = "!%&*+/<=>?@^-~"
 
 binaryCh :: Char -> (a -> a -> a) -> Operator Parser a
-binaryCh  name f = InfixL (f <$ opCh  name)
+binaryCh name f = InfixL (f <$ opCh name)
 
 binaryStr :: Text -> (a -> a -> a) -> Operator Parser a
 binaryStr name f = InfixL (f <$ opStr name)
 
 binaryEmpty :: (a -> a -> a) -> Operator Parser a
-binaryEmpty    f = InfixL (pure f)
+binaryEmpty f = InfixL (pure f)
 
 opCh :: Char -> Parser Char
-opCh  n = lexeme . try $ char   n <* notFollowedBy opChar
+opCh n = lexeme . try $ char n <* notFollowedBy opChar
 
 opStr :: Text -> Parser Text
 opStr n = lexeme . try $ string n <* notFollowedBy opChar
@@ -97,9 +92,11 @@ pExprVar = EVar <$> pVar
 pVar :: Parser Text
 pVar = noneOfTokens keywords *> pVar'
   where
-    pVar' = ((<>) . T.singleton) <$> letterChar <*> (T.pack <$> lexeme (many alphaNumChar))
-    noneOfTokens kw =
-        notFollowedBy $ choice $ map pKeyword kw
+    pVar' =
+        ((<>) . T.singleton)
+            <$> letterChar
+            <*> (T.pack <$> lexeme (many alphaNumChar))
+    noneOfTokens kw = notFollowedBy $ choice $ map pKeyword kw
 
 pExprIf :: Parser Expr
 pExprIf = do
@@ -136,15 +133,14 @@ pExprLam = do
     return $ ELam t x e
 
 pType :: Parser Type
-pType =
-    makeExprParser typeTerm [[opTypeArrow]] <?> "type"
+pType = makeExprParser typeTerm [[opTypeArrow]] <?> "type"
 
 typeTerm :: Parser Type
 typeTerm = choice
     [ brackets pType
-    , TNum  <$  pKeyword "num"
-    , TStr  <$  pKeyword "str"
-    , TBool <$  pKeyword "bool"
+    , TNum <$ pKeyword "num"
+    , TStr <$ pKeyword "str"
+    , TBool <$ pKeyword "bool"
     , TMeta <$> (char '$' *> pStringLiteral)
     ]
 

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+cd "$(dirname "$0")"
+cd ../
+
+find src app -name "*.hs" -exec brittany --indent=4 --write-mode=inplace "{}" +

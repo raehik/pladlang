@@ -17,18 +17,19 @@
 
 {-# LANGUAGE OverloadedStrings #-}
 
-module Pladlang.Derivation.Renderer.Latex (
-    renderLatex,
-    Config,
-    defaultConfig,
-    options
-) where
+module Pladlang.Derivation.Renderer.Latex
+    ( renderLatex
+    , Config
+    , defaultConfig
+    , options
+    )
+where
 
-import Pladlang.Derivation.AST
-import Data.Text (Text)
-import qualified Data.Text as T
-import Control.Monad.Trans.Reader
-import qualified Options.Applicative as OA
+import           Pladlang.Derivation.AST
+import           Data.Text                      ( Text )
+import qualified Data.Text                     as T
+import           Control.Monad.Trans.Reader
+import qualified Options.Applicative           as OA
 
 --------------------------------------------------------------------------------
 -- | Render a rule to LaTeX.
@@ -48,38 +49,44 @@ data Config = Config {
 } deriving (Eq, Show)
 
 defaultConfig :: Config
-defaultConfig = Config {
-    cfgUseAmssymbRounderSetSymbol = True
-}
+defaultConfig = Config { cfgUseAmssymbRounderSetSymbol = True }
 
 options :: OA.Parser Config
-options = Config <$>
-    OA.flag
-        (cfgUseAmssymbRounderSetSymbol defaultConfig)
-        False
-        (OA.long "use-latex-emptyset" <> OA.help "Use standard LaTeX's weird empty set symbol")
+options = Config <$> OA.flag
+    (cfgUseAmssymbRounderSetSymbol defaultConfig)
+    False
+    (  OA.long "use-latex-emptyset"
+    <> OA.help "Use standard LaTeX's weird empty set symbol"
+    )
 
 --------------------------------------------------------------------------------
 type Renderer = Reader Config
 
 showRule :: Rule -> Renderer Text
 showRule (ValidRule r) = do
-    name <- showRuleName (validRuleName r)
+    name      <- showRuleName (validRuleName r)
     judgement <- showSequent (validRuleJudgement r)
-    premises <- showPremises (validRulePremises r)
+    premises  <- showPremises (validRulePremises r)
     constructInferRule (Just name) premises judgement
 showRule (InvalidRule r) = do
-    premises <- showTypeError (invalidRuleError r)
+    premises  <- showTypeError (invalidRuleError r)
     judgement <- showSequent (invalidRuleJudgement r)
     constructInferRule Nothing premises judgement
 showRule (SequentOnly s) = showSequent s
 
 constructInferRule :: Maybe Text -> Text -> Text -> Renderer Text
-constructInferRule optName premises judgement = return $
-    "\\inferrule*"
-    <> case optName of { Nothing -> ""; Just name -> name }
-    <> "{" <> premises <> "}"
-    <> "{" <> judgement <> "}"
+constructInferRule optName premises judgement =
+    return
+        $  "\\inferrule*"
+        <> case optName of
+               Nothing   -> ""
+               Just name -> name
+        <> "{"
+        <> premises
+        <> "}"
+        <> "{"
+        <> judgement
+        <> "}"
 
 showRuleName :: Text -> Renderer Text
 showRuleName name = return $ "[Left=" <> name <> "]"
@@ -91,16 +98,17 @@ showPremises rs = do
     return $ T.intercalate " \\\\ " premises
 
 showTypeError :: TypeError -> Renderer Text
-showTypeError (TypeErrorUndefinedVariableUsed v) = return $
-    "\\textcolor[rgb]{1.0, 0.13, 0.32}{" <> v <> " \\ " <> mathtt "undecl.}"
+showTypeError (TypeErrorUndefinedVariableUsed v) =
+    return $ "\\textcolor[rgb]{1.0, 0.13, 0.32}{" <> v <> " \\ " <> mathtt
+        "undecl.}"
 showTypeError (TypeErrorArgWrongType t) = do
     tRendered <- showType t
-    return $  "\\textcolor[rgb]{1.0, 0.13, 0.32}{" <> tRendered <> "}"
+    return $ "\\textcolor[rgb]{1.0, 0.13, 0.32}{" <> tRendered <> "}"
 showTypeError (TypeErrorAny) = return "type error"
 
 showSequent :: Sequent -> Renderer Text
 showSequent s = do
-    context <- showContext (sequentContext s)
+    context       <- showContext (sequentContext s)
     annotatedExpr <- showAnnotatedExpr (sequentExpr s) (sequentType s)
     return $ context <> " \\vdash " <> annotatedExpr
 
@@ -121,16 +129,16 @@ showContext cs = do
     return $ T.intercalate ", " contextParts
 
 showContextPart :: ContextPart -> Renderer Text
-showContextPart (Gamma Nothing) = return "\\Gamma"
+showContextPart (Gamma Nothing            ) = return "\\Gamma"
 showContextPart (Gamma (Just subscriptNum)) = do
     gammaStart <- showContextPart (Gamma Nothing)
     return $ gammaStart <> "_{" <> tshow subscriptNum <> "}"
 showContextPart (Binding v t) = showAnnotatedExpr (EVar v) t
 
 showType :: Type -> Renderer Text
-showType TNum = return $ mathtt "num"
-showType TStr = return $ mathtt "str"
-showType TBool = return $ mathtt "bool"
+showType TNum           = return $ mathtt "num"
+showType TStr           = return $ mathtt "str"
+showType TBool          = return $ mathtt "bool"
 showType (TArrow t1 t2) = do
     t1Rendered <- showType t1
     t2Rendered <- showType t2
@@ -151,20 +159,31 @@ showExpr (EFunc name es) = do
     return $ mathtt name <> "(" <> T.intercalate " ; " exprs <> ")"
 showExpr (ELet e1 v e2) = do
     e1Rendered <- showExpr e1
-    vRendered <- showExpr (EVar v)
+    vRendered  <- showExpr (EVar v)
     e2Rendered <- showExpr e2
-    return $ mathtt "let" <> "("
-        <> e1Rendered <> " ; "
-        <> vRendered <> " . "
-        <> e2Rendered <> ")"
+    return
+        $  mathtt "let"
+        <> "("
+        <> e1Rendered
+        <> " ; "
+        <> vRendered
+        <> " . "
+        <> e2Rendered
+        <> ")"
 showExpr (ELam t v e) = do
     tRendered <- showType t
     vRendered <- showExpr (EVar v)
     eRendered <- showExpr e
-    return $ mathtt "lam"
-        <> "\\{" <> tRendered <> "\\}"
-        <> "(" <> vRendered <> " . "
-        <> eRendered <> ")"
+    return
+        $  mathtt "lam"
+        <> "\\{"
+        <> tRendered
+        <> "\\}"
+        <> "("
+        <> vRendered
+        <> " . "
+        <> eRendered
+        <> ")"
 showExpr (EMeta text) = return $ "e_{" <> text <> "}"
 
 --------------------------------------------------------------------------------
