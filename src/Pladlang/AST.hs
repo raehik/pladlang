@@ -39,6 +39,6 @@ data TopExpr
     deriving (Eq, Show)
 
 data Context
-    | Context [(Text, Maybe Type)]
-    = EmptyContext
+    = Context [(Text, Maybe Type)]
+    | EmptyContext
     deriving (Eq, Show)
