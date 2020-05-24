@@ -1,4 +1,14 @@
-## Rendering
+## Derivation
+  * oh, re-add errors - I think I have to do the Rule' thing again
+    * *looks* like I don't need SequentOnly (I can simply use no premises), but
+      I certainly do need to differentiate between valid and invalid rules
+    * potentially I could change premises to `Either (TypeError e t) [Rule e t]`
+      * I've thought this through REISEINI (no IME) & it seems to work. And the
+        types line up to very nicely - we have ultimate freedom via an DT which
+        has the expr+type type! e.g. embedding expressions in type errors, and
+        having the user choose how they're rendered
+
+## Derivation rendering
   * for rendering to CS: how to figure out correct bracketing without just
     overdoing it?? :(
 
@@ -6,15 +16,6 @@
   * parse top expression context
   * clean up metavar syntax
     * maybe allow empty `$` as empty var, empty type
-
-## Derivation
-  * rewrite AST to be simpler
-    * actually, no, rewrite it to still be as flexible as it is, but extend
-      types to include more generic constructors and use those internally where
-      possible
-    * our derivation renderers are gonna have to have a number of different
-      flavours now: latex-ef, latex-efast (unless I can somehow do another
-      intermediate step?)
 
 ## Unsorted
   * consider storing environment in an ordered list - slower, but may want to
