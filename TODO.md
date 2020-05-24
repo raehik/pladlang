@@ -1,3 +1,7 @@
+## Rendering
+  * for rendering to CS: how to figure out correct bracketing without just
+    overdoing it?? :(
+
 ## Parsing
   * parse top expression context
   * clean up metavar syntax
