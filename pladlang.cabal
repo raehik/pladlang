@@ -1,0 +1,79 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: ec90311fa1eb57bda334867ec325a87c7ed95239d37c4e81c3fd05d874c104de
+
+name:           pladlang
+version:        0.2.0
+description:    Please see the README on GitHub at <https://github.com/raehik/pladlang#readme>
+homepage:       https://github.com/raehik/pladlang#readme
+bug-reports:    https://github.com/raehik/pladlang/issues
+author:         Ben Orchard / bo207 / @raehik
+maintainer:     Ben Orchard / bo207 / @raehik
+copyright:      2020 Ben Orchard (@raehik) <thefirstmuffinman@gmail.com>
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/raehik/pladlang
+
+library
+  exposed-modules:
+      HMInfer.Lang.Pladlang
+      HMInfer.Renderer.Latex
+      HMInfer.Types
+      Pladlang.AST
+      Pladlang.Parser.LangEF
+      Pladlang.Parser.LangEFAST
+      Pladlang.Parser.SyntaxSelect
+      Pladlang.Parser.Utils
+      Pladlang.TypeDeriv
+      Pladlang.TypeDeriv.Renderers.LatexAST
+      Pladlang.TypeDeriv.Renderers.LatexCS
+      TypeDeriv.AST
+      TypeDeriv.Renderer.Latex
+  other-modules:
+      Paths_pladlang
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , bytestring >=0.10
+    , containers >=0.6
+    , either >=5.0
+    , megaparsec >=8.0
+    , mtl >=2.2
+    , optparse-applicative >=0.15
+    , parser-combinators >=1.2
+    , text >=1.2
+    , transformers >=0.5
+  default-language: Haskell2010
+
+executable pladlang-exe
+  main-is: Main.hs
+  other-modules:
+      Options
+      Paths_pladlang
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , bytestring >=0.10
+    , containers >=0.6
+    , either >=5.0
+    , megaparsec >=8.0
+    , mtl >=2.2
+    , optparse-applicative >=0.15
+    , parser-combinators >=1.2
+    , pladlang
+    , text >=1.2
+    , transformers >=0.5
+  default-language: Haskell2010
